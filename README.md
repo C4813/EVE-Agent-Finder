@@ -1,2 +1,125 @@
-# EVE-Agent-Finder
-Find optimal EVE Online mission hubs using CCP Static Data Export (SDE) data.
+# EVE Agent Finder
+
+A WordPress plugin for finding optimal EVE Online mission hubs using data from the [CCP Static Data Export (SDE)](https://developers.eveonline.com/static-data).
+
+Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_agent_finder]` on any page to give your players a live, filterable mission hub browser.
+
+---
+
+## Features
+
+### Frontend
+- **Hub view** — systems grouped by hub, showing station count, agent count, security status, constellation/region breadcrumb, storyline proximity, and jumps from Lowsec
+- **Security colours** matching the in-game Photon UI palette
+- **Clickable Dotlan links** on system names, constellations, regions, Lowsec distance badges, and storyline distance badges
+- **Expand any hub card** to see individual stations and agents with level, division, type, corporation, and faction
+- **Hub score** — composite ranking based on agent count, L4 density, corporation diversity, station count, and safety
+- **Highlighted borders** on hubs with multiple agents of the same mission type and level
+- **Copy buttons** (`⧉`) on system names and agent names for quick in-game pasting
+- **Table view** — flat sortable agent list as an alternative to hub view
+
+### Filters
+- Security class (Highsec / Lowsec / Nullsec)
+- Agent level (L1–L5)
+- Mission type (Distribution, Security, Mining, R&D)
+- Agent type (Basic, Storyline, COSMOS, Epic Arc, R&D, Career, Faction Warfare, etc.)
+- Faction and corporation dropdowns
+- Min agents per system or per station stepper
+- Storyline-in-system toggle with live count
+- Min jumps from Lowsec slider (Highsec only)
+
+### Admin
+- **Single SDE zip upload** — drop the full CCP SDE zip and all 11 required YAML files are extracted and imported automatically in the correct dependency order
+- **Per-table drop buttons** — clear and re-import any individual table independently
+- **BFS engine** — multi-source breadth-first search calculates Lowsec distance and nearest storyline agent system for every system in New Eden (~8,500 systems)
+- Import status cards show row counts and timestamps for each data table
+- Unnamed agents notice if any agents lack names after import
+
+---
+
+## Requirements
+
+| Requirement | Version |
+|---|---|
+| WordPress | 6.0+ |
+| PHP | 8.0+ |
+| PHP extension | `ZipArchive` (for SDE zip upload) |
+| MySQL | 5.7+ / MariaDB 10.3+ |
+
+---
+
+## Installation
+
+1. Download the latest release zip from the [Releases](../../releases) page
+2. In WordPress admin go to **Plugins → Add New → Upload Plugin**
+3. Upload the zip and activate
+4. Go to **EVE Agent Finder** in the admin menu
+5. Download the latest SDE yaml zip from [developers.eveonline.com/static-data](https://developers.eveonline.com/static-data)
+6. Upload the SDE zip — all required files are imported automatically
+7. Click **Run BFS** to calculate jump distances
+8. Add `[eve_agent_finder]` to any page or post
+
+> Recommended: use a full-width page template without a sidebar for best layout.
+
+---
+
+## Shortcode
+```
+[eve_agent_finder]
+```
+
+Optional attributes:
+
+| Attribute | Default | Description |
+|---|---|---|
+| `sec_class` | `highsec` | Comma-separated default security filter: `highsec`, `lowsec`, `nullsec` |
+| `min_jumps` | `0` | Default minimum jumps from Lowsec |
+
+Example:
+```
+[eve_agent_finder sec_class="highsec" min_jumps="5"]
+```
+
+---
+
+## SDE Files Used
+
+The plugin extracts and imports these files from the SDE zip automatically:
+
+| File | Data |
+|---|---|
+| `factions.yaml` | NPC factions |
+| `npcCorporations.yaml` | NPC corporations |
+| `agentTypes.yaml` | Agent type definitions |
+| `npcCorporationDivisions.yaml` | Division names |
+| `mapConstellations.yaml` | Constellation names |
+| `mapRegions.yaml` | Region names |
+| `mapSolarSystems.yaml` | Solar systems + security status |
+| `mapStargates.yaml` | Stargate connections (for BFS) |
+| `stationOperations.yaml` | Station operation types |
+| `npcStations.yaml` | NPC station locations |
+| `npcCharacters.yaml` | Agents with names and attributes |
+
+---
+
+## Database Tables
+
+All tables are prefixed with `{wp_prefix}eaf_`:
+
+`factions` · `corporations` · `agent_types` · `divisions` · `constellations` · `regions` · `systems` · `system_jumps` · `station_operations` · `stations` · `agents` · `import_log`
+
+All tables are removed cleanly on plugin deletion.
+
+---
+
+## Data Source
+
+All game data is sourced from the [CCP Static Data Export](https://developers.eveonline.com/static-data), provided by CCP Games under the [EVE Online Developer License Agreement](https://developers.eveonline.com/license-agreement).
+
+EVE Online and all related marks are the property of CCP hf.
+
+---
+
+## License
+
+GPL-2.0+  — see [LICENSE](LICENSE)
