@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ Features include:
 7. Add `[eve_agent_finder]` to any page or post (recommended on a full-width page without a sidebar)
 
 == Changelog ==
+
+= 1.0.1 =
+* Bug fix: selecting Highsec + Lowsec + Nullsec could return fewer results than Highsec + Lowsec alone due to a hardcoded 8000-agent query limit; limit removed as all filtering is client-side
 
 = 1.0.0 =
 Initial Public Release
