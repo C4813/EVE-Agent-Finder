@@ -20,7 +20,6 @@ class EAF_Query {
 		$defaults = array(
 			'sec_class'       => array( 'highsec' ),
 			'min_lowsec_dist' => 0,
-			'limit'           => 8000,
 		);
 		$filters = wp_parse_args( $filters, $defaults );
 
@@ -52,7 +51,6 @@ class EAF_Query {
 		}
 
 		$where_sql = 'WHERE ' . implode( ' AND ', $where );
-		$limit_sql = absint( $filters['limit'] );
 
 		$sql = "
 			SELECT
@@ -112,7 +110,6 @@ class EAF_Query {
 			LEFT  JOIN {$sys_t}   sys ON sys.system_id      = sta.system_id
 			{$where_sql}
 			ORDER BY sys.lowsec_distance DESC, COALESCE(sys.system_name,''), COALESCE(sta.station_name,''), a.level DESC
-			LIMIT {$limit_sql}
 		";
 
 		if ( ! empty( $params ) ) {
