@@ -1,0 +1,224 @@
+/* eve-agent-finder / admin/css/eaf-admin.css */
+
+.eaf-admin-wrap h1 { font-size: 1.6rem; margin-bottom: 1rem; }
+
+/* Info banner */
+.eaf-info-box {
+    background: #1a2635;
+    border-left: 4px solid #4a9eff;
+    color: #cde;
+    padding: 1rem 1.25rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+.eaf-info-box a { color: #6bc4ff; }
+.eaf-info-box code {
+    background: rgba(255,255,255,.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #adf;
+}
+
+/* Stat row */
+.eaf-stat-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.eaf-stat {
+    background: #0f1e2e;
+    border: 1px solid #2a4060;
+    border-radius: 6px;
+    padding: .6rem 1.2rem;
+    color: #aac;
+    font-size: .85rem;
+}
+.eaf-stat span { font-size: 1.5rem; font-weight: 700; color: #6bc4ff; display: block; }
+
+/* Import grid */
+.eaf-import-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+}
+
+.eaf-step {
+    background: #1a1a2e;
+    border: 1px solid #2a3a50;
+    border-radius: 6px;
+    padding: .85rem 1rem;
+    transition: border-color .2s, background .2s;
+}
+.eaf-step.done    { background: #0d2018; border-color: #1e7a3e; }
+.eaf-step.running { background: #1a2035; border-color: #4a7eff; animation: eaf-pulse 1.2s infinite; }
+.eaf-step.error   { background: #2a0d0d; border-color: #8b2020; }
+
+@keyframes eaf-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(74,126,255,0); }
+    50%      { box-shadow: 0 0 0 4px rgba(74,126,255,.3); }
+}
+
+.eaf-step-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; }
+.eaf-step-header strong { color: #c8d8e8; font-size: .92rem; }
+.eaf-step-status { font-size: 1.1rem; }
+
+.eaf-step-meta code {
+    font-size: .72rem;
+    color: #6899bb;
+    background: rgba(255,255,255,.04);
+    padding: 0 3px;
+    border-radius: 2px;
+    word-break: break-all;
+}
+.eaf-step-meta small { color: #5a7a9a; font-size: .78rem; }
+
+/* Upload row */
+.eaf-upload-row {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin-top: .65rem;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+}
+
+/* Hide the native file input; clicking the label text triggers it */
+.eaf-file-label {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+.eaf-yaml-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.eaf-file-name {
+    font-size: .74rem;
+    color: #557a99;
+    border-bottom: 1px dashed #2a4060;
+    padding-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+    transition: color .15s, border-color .15s;
+}
+.eaf-file-label:hover .eaf-file-name {
+    color: #7ac4ff;
+    border-bottom-color: #4a7eff;
+}
+
+/* Import button */
+.eaf-upload-btn {
+    font-size: .76rem !important;
+    padding: 2px 9px !important;
+    height: auto !important;
+    line-height: 1.7 !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.eaf-upload-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Step log */
+.eaf-step-log {
+    font-size: .78rem;
+    color: #7aaa7a;
+    margin-top: .4rem;
+    min-height: 1.2em;
+    word-break: break-word;
+}
+.eaf-step.error .eaf-step-log { color: #cc7070; }
+
+/* Action row */
+.eaf-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+
+.eaf-global-status {
+    display: block;
+    font-size: .9rem;
+    font-weight: 600;
+    padding: .3rem .6rem;
+    border-radius: 4px;
+    margin-top: .5rem;
+    margin-bottom: 1rem;
+    min-height: 1.6em;
+}
+.eaf-global-status.info    { background: #1a2e45; color: #7ac4ff; }
+.eaf-global-status.success { background: #0d2518; color: #4ada82; }
+.eaf-global-status.error   { background: #2a0d0d; color: #ff7a7a; }
+
+/* Drop table button */
+.eaf-step-actions {
+    margin-top: .5rem;
+}
+.eaf-drop-btn {
+    font-size: .72rem !important;
+    padding: 1px 7px !important;
+    height: auto !important;
+    line-height: 1.6 !important;
+    color: #8a4040 !important;
+    border-color: #4a2020 !important;
+    background: #1a0a0a !important;
+}
+.eaf-drop-btn:hover {
+    color: #dd6060 !important;
+    border-color: #8a3030 !important;
+    background: #2a0f0f !important;
+}
+
+/* Drop table button */
+.eaf-drop-btn {
+    font-size: .74rem !important;
+    padding: 2px 7px !important;
+    height: auto !important;
+    line-height: 1.7 !important;
+    color: #aa4444 !important;
+    border-color: #6a2020 !important;
+    background: #1a0808 !important;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+.eaf-drop-btn:hover {
+    color: #ff6666 !important;
+    border-color: #aa3030 !important;
+    background: #220a0a !important;
+}
+
+/* ── ZIP upload area ─────────────────────────────────────────────── */
+.eaf-zip-upload-area {
+    border: 2px dashed var(--eaf-border, #2a4060);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    background: #080f18;
+    transition: border-color .2s, background .2s;
+}
+.eaf-zip-upload-area.eaf-drag-over {
+    border-color: #3a9fff;
+    background: #0d1e30;
+}
+.eaf-zip-icon { font-size: 2.5rem; line-height: 1; margin-bottom: .5rem; }
+.eaf-zip-label label { cursor: pointer; color: #3a9fff; font-size: 1rem; }
+.eaf-zip-label label:hover { text-decoration: underline; }
+#eaf-sde-zip-input { display: none; }
+.eaf-zip-filename { font-size: .9rem; color: #7aaa7a; margin: .5rem 0; min-height: 1.2em; }
+.eaf-zip-import-btn { margin-top: .5rem !important; }
+
+/* ── Import results table ────────────────────────────────────────── */
+.eaf-import-results { margin-bottom: 1.5rem; }
+.eaf-import-results h3 { margin-bottom: .5rem; color: #c8d8e8; }
+.eaf-results-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.eaf-results-table th { text-align: left; padding: .4rem .6rem; background: #091420; color: #7090aa; font-size: .8rem; text-transform: uppercase; }
+.eaf-results-table td { padding: .35rem .6rem; border-bottom: 1px solid #1c2e42; }
+.eaf-row-ok td { color: #7aaa7a; }
+.eaf-row-err td { color: #cc7070; }
+
+/* ── Drop button in step header ──────────────────────────────────── */
+.eaf-step-header { display: flex; align-items: center; gap: .4rem; }
+.eaf-step-header strong { flex: 1; }
+.eaf-drop-btn { opacity: 0.4; font-size: .8rem !important; padding: 0 4px !important; line-height: 1.4 !important; min-height: unset !important; }
+.eaf-step:hover .eaf-drop-btn { opacity: 0.8; }
+.eaf-drop-btn:hover { opacity: 1 !important; }
