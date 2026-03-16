@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ Features include:
 7. Add `[eve_agent_finder]` to any page or post (recommended on a full-width page without a sidebar)
 
 == Changelog ==
+
+= 1.2.2 =
+* The eaf_char_token SSO session cookie is now registered via the WP Consent API (wp_add_cookie_info), compatible with CookieYes, Complianz, CookieHub, and any other GDPR plugin that supports the standard; no effect if the WP Consent API plugin is not installed
 
 = 1.2.1 =
 * The eaf_char_token SSO session cookie is now automatically registered with CookieYes (via the cookieyes_cookie_list filter) and Complianz (via the complianz_cookie_list filter), so it appears in cookie declarations as a Strictly Necessary / Functional cookie without requiring a manual entry or scanner run
