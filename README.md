@@ -34,6 +34,7 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 - **Min L4 agents** stepper with its own per-system / per-station scope
 - **Storyline in system** toggle with live count
 - **Locator agents only** toggle with live count
+- **Available to my character only** — visible when logged in via EVE SSO; hides agents your character cannot access based on current standings (see [EVE SSO](#eve-sso) below)
 
 ### Sort options
 - Most agents, Furthest from Lowsec, Nearest to Lowsec, System name A→Z, Hub score
@@ -41,6 +42,7 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 
 ### Sharing & bookmarking
 - **Share button** — copies the current URL with all active filters encoded in a clean, readable hash (e.g. `#eaf?region=Everyshore&lv=4&mt=Security`)
+- When the **Available to my character only** standings filter is active, standings data is embedded directly in the shared URL — recipients see the same filtered results without needing to log in
 - Filter state is saved to **localStorage** and restored automatically on next visit
 - URL hash takes priority over localStorage; Reset filters clears both
 
@@ -50,6 +52,40 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 - **BFS engine** — multi-source breadth-first search calculates Lowsec distance, nearest storyline agent system, and on-demand single-source BFS for the Nearest to… sort feature, for every system in New Eden (~8,500 systems)
 - Import status cards show row counts and timestamps for each data table
 - Unnamed agents notice if any agents lack names after import
+- **EVE SSO Settings** — configure a developer application Client ID and Secret Key to enable front-end character authentication (see [EVE SSO](#eve-sso) below)
+
+---
+
+## EVE SSO
+
+When an EVE Online Developer Application is configured in the admin settings, a **LOG IN with EVE Online** button appears in the toolbar next to the page title. Authenticating grants read-only access to the character's standings — no in-game actions, wallet, or assets are accessible.
+
+Once authenticated, the toolbar displays:
+
+> [Authenticated as Character Name] [Change Character] [Log out]
+
+The **Available to my character only** toggle then becomes available in Advanced options. Enabling it hides any agent whose corporation or faction standing falls below the threshold required for that agent's level:
+
+| Agent Level | Required Standing |
+|---|---|
+| L1 | No requirement |
+| L2 | 1.0 |
+| L3 | 3.0 |
+| L4 | 5.0 |
+| L5 | 7.0 |
+
+Standings are fetched live from ESI and cached server-side for 30 minutes. The session cookie persists for 24 hours; logging out clears it immediately without a page refresh.
+
+### Setting up EVE SSO
+
+1. Go to the **EVE Agent Finder** admin panel and open the **EVE SSO Settings** section
+2. Follow the step-by-step instructions to create an application at [developers.eveonline.com/applications](https://developers.eveonline.com/applications)
+3. Set **Connection Type** to **Authentication & API Access**
+4. Add the scope `esi-characters.read_standings.v1`
+5. Copy the **Callback URL** shown in the settings panel and paste it into your application
+6. Save the application, then paste the **Client ID** and **Secret Key** into the settings form
+
+The Secret Key is stored securely and never displayed again after saving.
 
 ---
 
@@ -124,7 +160,7 @@ All tables are prefixed with `{wp_prefix}eaf_`:
 
 `factions` · `corporations` · `agent_types` · `divisions` · `constellations` · `regions` · `systems` · `system_jumps` · `station_operations` · `stations` · `agents` · `import_log`
 
-All tables are removed cleanly on plugin deletion.
+All tables and plugin options are removed cleanly on plugin deletion, including all SSO credentials and cached transients.
 
 ---
 
