@@ -71,10 +71,24 @@ class EAF_Public {
 			'default_min_jumps' => max( 0, intval( $atts['min_jumps'] ) ),
 		] );
 
+		// SSO state: pass auth URL and current character info (if logged in) to JS.
+		$sso_configured = EAF_SSO::is_configured();
+		$auth           = $sso_configured ? EAF_SSO::get_current_auth() : null;
+		$auth_url       = '';
+		$return_url = ( is_ssl() ? 'https://' : 'http://' )
+			. sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ?? '' ) )
+			. sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' ) );
+		$auth_url = $sso_configured ? EAF_SSO::build_auth_url( $return_url ) : '';
+
 		wp_enqueue_script( 'eaf-public' );
 		wp_localize_script( 'eaf-public', 'EAF', [
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'eaf_public' ),
+			'ajax_url'        => admin_url( 'admin-ajax.php' ),
+			'nonce'           => wp_create_nonce( 'eaf_public' ),
+			'sso_configured'  => $sso_configured ? '1' : '0',
+			'sso_auth_url'    => $auth_url,
+			'sso_char_name'   => $auth ? $auth['character_name'] : '',
+			'sso_authed'      => $auth ? '1' : '0',
+			'sso_img_url'     => EAF_URL . 'public/img/eve-sso.png',
 		] );
 
 		ob_start();
