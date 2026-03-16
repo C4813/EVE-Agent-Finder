@@ -13,10 +13,12 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 - **Security colours** matching the in-game Photon UI palette
 - **Clickable Dotlan links** on system names, constellations, regions, Lowsec distance badges, and storyline distance badges
 - **Expand any hub card** to see individual stations and agents with level, division, type, corporation, and faction
+- **Collapse all** button appears in the results bar when one or more cards are expanded
 - **Hub score** — composite ranking based on agent count, L4 density, corporation diversity, station count, and safety
-- **Highlighted borders** on hubs with multiple agents of the same mission type and level
-- **Copy buttons** (`⧉`) on system names and agent names for quick in-game pasting
+- **Gold highlight border** on hubs with multiple agents of the same mission type and level — respects active filters, with a tooltip naming the specific type and level (e.g. _This system has multiple L4 Security agents_)
+- **Copy buttons** (`⧉`) on system names, station names, and agent names for quick in-game pasting
 - **Table view** — flat sortable agent list as an alternative to hub view
+- **Locator agent tag** shown on agents in both hub and table view
 
 ### Filters
 - Security class (Highsec / Lowsec / Nullsec)
@@ -24,14 +26,28 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 - Mission type (Distribution, Security, Mining, R&D)
 - Agent type (Basic, Storyline, COSMOS, Epic Arc, R&D, Career, Faction Warfare, etc.)
 - Faction and corporation dropdowns
-- Min agents per system or per station stepper
-- Storyline-in-system toggle with live count
+- Region dropdown
 - Min jumps from Lowsec slider (Highsec only)
+
+### Advanced options
+- **Min agents** per system or per station stepper
+- **Min L4 agents** stepper with its own per-system / per-station scope
+- **Storyline in system** toggle with live count
+- **Locator agents only** toggle with live count
+
+### Sort options
+- Most agents, Furthest from Lowsec, Nearest to Lowsec, System name A→Z, Hub score
+- **Nearest to…** — enter any system name to sort hubs by jump distance; autocomplete suggestions appear after 2 characters; each hub card shows a clickable jump-count badge linking to a Dotlan route
+
+### Sharing & bookmarking
+- **Share button** — copies the current URL with all active filters encoded in a clean, readable hash (e.g. `#eaf?region=Everyshore&lv=4&mt=Security`)
+- Filter state is saved to **localStorage** and restored automatically on next visit
+- URL hash takes priority over localStorage; Reset filters clears both
 
 ### Admin
 - **Single SDE zip upload** — drop the full CCP SDE zip and all 11 required YAML files are extracted and imported automatically in the correct dependency order
 - **Per-table drop buttons** — clear and re-import any individual table independently
-- **BFS engine** — multi-source breadth-first search calculates Lowsec distance and nearest storyline agent system for every system in New Eden (~8,500 systems)
+- **BFS engine** — multi-source breadth-first search calculates Lowsec distance, nearest storyline agent system, and on-demand single-source BFS for the Nearest to… sort feature, for every system in New Eden (~8,500 systems)
 - Import status cards show row counts and timestamps for each data table
 - Unnamed agents notice if any agents lack names after import
 
@@ -122,4 +138,4 @@ EVE Online and all related marks are the property of CCP hf.
 
 ## License
 
-GPL-2.0+  — see [LICENSE](LICENSE)
+GPL-2.0+ — see [LICENSE](LICENSE)
