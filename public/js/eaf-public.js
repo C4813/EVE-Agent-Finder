@@ -42,6 +42,15 @@ jQuery(function ($) {
     // Cache all region names for region select filtering
     let allRegions = [];
 
+    // ── SSO / standings state ─────────────────────────────────────────────────
+    // standings: array of { from_id, from_type, standing } from ESI, or null = not loaded
+    let standingsData     = null;
+    let standingsLoading  = false;
+    let standingsCharName = EAF.sso_char_name || '';
+    // Mutable auth flag — updated on logout so renderSSOZone re-renders correctly
+    // without needing a page reload.
+    let ssoAuthed = EAF.sso_authed === '1';
+
     // ── URL hash & localStorage ───────────────────────────────────────────────
     const LS_KEY = 'eaf_filters_v2';
 
@@ -188,6 +197,14 @@ jQuery(function ($) {
             if (saved) { applyState(saved); }
             updateSliderMax(allAgents);
             bindEvents();
+
+            // SSO: initialise toolbar zone and show standings row if already authed
+            if (EAF.sso_configured === '1') {
+                if (ssoAuthed) {
+                    $('#eaf-standings-row').show();
+                }
+            }
+
             render();
         } catch (e) {
             $results.html('<div class="eaf-error">Failed to load agent data. ' + esc(e.message || '') + '</div>');
@@ -544,6 +561,105 @@ jQuery(function ($) {
 
         // Reset
         $results.on('click', '#eaf-reset-filters', resetFilters);
+
+        // ── SSO / standings events ────────────────────────────────────────────
+
+        // Standings filter toggle — lazy-fetch standings on first check
+        $app.on('change', '#eaf-standings-filter', function() {
+            if ($(this).is(':checked')) {
+                loadStandings();
+            } else {
+                render();
+            }
+        });
+
+        // Logout button (rendered dynamically by renderSSOZone)
+        $app.on('click', '#eaf-sso-logout-btn', function(e) {
+            e.preventDefault();
+            ajaxPost({ action: 'eaf_sso_logout' }).then(function() {
+                standingsData    = null;
+                standingsLoading = false;
+                standingsCharName = '';
+                ssoAuthed = false;
+                $('#eaf-standings-filter').prop('checked', false);
+                $('#eaf-standings-status').text('');
+                $('#eaf-standings-row').hide();
+                renderSSOZone();
+                render();
+            });
+        });
+    }
+
+    // ── SSO toolbar renderer ──────────────────────────────────────────────────
+
+    /**
+     * Renders the SSO zone in the toolbar based on EAF.sso_* config and
+     * current standingsCharName. The server already renders the initial state
+     * in PHP; this function handles updates after logout / re-auth prompt.
+     */
+    function renderSSOZone() {
+        const $zone = $('#eaf-sso-zone');
+        if (!$zone.length || EAF.sso_configured !== '1') return;
+
+        if (ssoAuthed && standingsCharName) {
+            // Authenticated state
+            $zone.html(
+                '<span class="eaf-sso-authed-label">[Authenticated as <strong>' + esc(standingsCharName) + '</strong>]</span>' +
+                '<a href="' + esc(EAF.sso_auth_url || '#') + '" class="eaf-sso-change-btn">[Change Character]</a>' +
+                '<button type="button" id="eaf-sso-logout-btn" class="eaf-sso-logout-link">[Log out]</button>'
+            );
+            $('#eaf-standings-row').show();
+        } else {
+            // Logged-out state
+            const btnHtml = EAF.sso_img_url
+                ? '<img src="' + esc(EAF.sso_img_url) + '" alt="LOG IN with EVE Online">'
+                : '<span class="eaf-sso-text-btn">LOG IN with EVE Online</span>';
+            $zone.html(
+                '<a href="' + esc(EAF.sso_auth_url) + '" class="eaf-sso-login-btn" id="eaf-sso-login-btn">' + btnHtml + '</a>'
+            );
+            $('#eaf-standings-row').hide();
+        }
+    }
+
+    // ── Standings loader ──────────────────────────────────────────────────────
+
+    /**
+     * Fetches standings from the server (which proxies ESI with caching).
+     * Shows a spinner in the standings status area while loading.
+     * On success: stores standingsData and triggers a re-render.
+     * On need_reauth: unchecks the toggle and shows a re-auth prompt.
+     */
+    function loadStandings() {
+        if (standingsLoading) return;
+        if (standingsData) { render(); return; }
+
+        standingsLoading = true;
+        $('#eaf-standings-status').html('<span class="eaf-standings-spinner">⟳</span> Loading standings…');
+
+        ajaxPost({ action: 'eaf_standings' })
+            .then(function(resp) {
+                standingsData     = resp.data.standings;
+                standingsCharName = resp.data.character_name || standingsCharName;
+                $('#eaf-standings-status').text('');
+                render();
+            })
+            .catch(function(resp) {
+                standingsLoading = false;
+                $('#eaf-standings-filter').prop('checked', false);
+                const needReauth = resp && resp.responseJSON && resp.responseJSON.data && resp.responseJSON.data.need_reauth;
+                if (needReauth) {
+                    $('#eaf-standings-status').html(
+                        '<span class="eaf-standings-warn">Session expired. ' +
+                        '<a href="' + esc(EAF.sso_auth_url || '#') + '">Re-authenticate</a></span>'
+                    );
+                } else {
+                    const msg = (resp && resp.responseJSON && resp.responseJSON.data && resp.responseJSON.data.message) || 'Could not load standings.';
+                    $('#eaf-standings-status').html('<span class="eaf-standings-warn">' + esc(msg) + '</span>');
+                }
+            })
+            .finally(function() {
+                standingsLoading = false;
+            });
     }
 
     function updateRangeLabel(rangeId, valId, isMax) {
@@ -564,11 +680,41 @@ jQuery(function ($) {
         const corpId     = parseInt($('#eaf-corporation').val() || '0', 10);
         const regionName = $('#eaf-region').val() || '';
         const minJumps   = parseInt($('#eaf-min-jumps-range').val(), 10);
-        const locatorOnly = $('#eaf-locator-only').is(':checked');
+        const locatorOnly      = $('#eaf-locator-only').is(':checked');
+        const standingsFilter  = $('#eaf-standings-filter').is(':checked');
 
         return { q, secClasses, levels, missionTypes,
                  divIds: divIds.map(Number).filter(Boolean),
-                 atIds, factionId, corpId, regionName, minJumps, locatorOnly };
+                 atIds, factionId, corpId, regionName, minJumps, locatorOnly, standingsFilter };
+    }
+
+    // ── Standings: can a character access this agent? ─────────────────────────
+    // ESI standings: NPC corps/factions use from_type 'npc_corp' or 'faction'.
+    // An agent is available when the standing toward their corporation is ≥ 1
+    // for L1–L2, ≥ 3 for L3–L4, ≥ 5 for L5  (CCP's threshold formula).
+    // We also pass if the character has sufficient faction standing as a fallback
+    // (faction standing can unlock access to corp agents).
+    // Threshold reference: https://support.eveonline.com/hc/en-us/articles/203219961
+    const LEVEL_THRESHOLDS = { 1: -10, 2: 1, 3: 3, 4: 5, 5: 7 };
+
+    function standingFor(fromId) {
+        if (!standingsData) return null;
+        for (let i = 0; i < standingsData.length; i++) {
+            if (standingsData[i].from_id === fromId) return standingsData[i].standing;
+        }
+        return null;
+    }
+
+    function isAgentAccessible(agent) {
+        if (!standingsData) return true;
+        const threshold = LEVEL_THRESHOLDS[agent.level] !== undefined ? LEVEL_THRESHOLDS[agent.level] : 1;
+        const corpStanding    = standingFor(agent.corporation_id);
+        const factionStanding = standingFor(agent.faction_id);
+        const effective = Math.max(
+            corpStanding    !== null ? corpStanding    : -10,
+            factionStanding !== null ? factionStanding : -10
+        );
+        return effective >= threshold;
     }
 
     function applyFilters(agents) {
@@ -596,6 +742,11 @@ jQuery(function ($) {
             if (f.regionName && a.region_name !== f.regionName) return false;
 
             if (f.locatorOnly && !a.is_locator) return false;
+
+            // Standings filter — hide agents the character cannot access
+            if (f.standingsFilter && standingsData) {
+                if (!isAgentAccessible(a)) return false;
+            }
 
             if (f.q) {
                 const haystack = [
@@ -732,7 +883,13 @@ jQuery(function ($) {
         $locLabel.append('<span class="eaf-locator-count eaf-count-hint"> (' + locatorAgentCount + ')</span>');
 
         if (systems.length === 0) {
-            $results.html('<div class="eaf-empty">No systems match your filters. Try relaxing the constraints — e.g. reduce "min agents in system" to 1.</div>');
+            $results.html(
+                '<div class="eaf-hub-count">'
+                + '<span>No systems match your filters</span>'
+                + '<button class="eaf-btn eaf-btn-reset eaf-btn-sm" id="eaf-reset-filters">↺ Reset filters</button>'
+                + '</div>'
+                + '<div class="eaf-empty">Try relaxing the filters.</div>'
+            );
             return;
         }
 
@@ -1126,6 +1283,7 @@ jQuery(function ($) {
             l4scope:    $('#eaf-min-l4-scope').data('scope') !== 'system' ? $('#eaf-min-l4-scope').data('scope') : undefined,
             sl:         $('#eaf-storyline-only').is(':checked') || undefined,
             loc:        $('#eaf-locator-only').is(':checked')   || undefined,
+            std:        $('#eaf-standings-filter').is(':checked') || undefined,
             sort:       sortBy !== 'agents_desc' ? sortBy : undefined,
             nearest:    nearestOriginName || undefined,
             view:       currentView !== 'station' ? currentView : undefined,
@@ -1165,6 +1323,27 @@ jQuery(function ($) {
         }
         if (state.sl)     { $('#eaf-storyline-only').prop('checked', true); }
         if (state.loc)    { $('#eaf-locator-only').prop('checked', true); }
+        if (state.std) {
+            // Standings filter was active when this link was shared.
+            $('#eaf-standings-row').show();
+            $('#eaf-standings-filter').prop('checked', true);
+
+            if (state.std_data && state.std_data.length) {
+                // Standings were embedded in the URL — restore them directly.
+                // This works for anyone with the link, logged in or not.
+                standingsData = state.std_data;
+                // No status message needed — filter is live immediately.
+            } else if (ssoAuthed) {
+                // No embedded data but user is authenticated — fetch from ESI.
+                loadStandings();
+            } else if (EAF.sso_configured === '1') {
+                // No data and not logged in — show a prompt.
+                $('#eaf-standings-status').html(
+                    '<span class="eaf-standings-warn">Log in to apply standings filter. ' +
+                    '<a href="' + esc(EAF.sso_auth_url || '#') + '">Authenticate</a></span>'
+                );
+            }
+        }
         if (state.sort)   {
             sortBy = state.sort;
             $('#eaf-sort-by').val(state.sort);
@@ -1196,6 +1375,18 @@ jQuery(function ($) {
         // Booleans
         if (state.sl)  parts.push('sl=1');
         if (state.loc) parts.push('loc=1');
+        if (state.std) {
+            parts.push('std=1');
+            // Encode loaded standings into the URL so shared links work for anyone,
+            // authenticated or not. Format: std_data=id:standing,id:standing,...
+            // Only the from_id and standing are needed; from_type is not used in filtering.
+            if (standingsData && standingsData.length) {
+                const encoded = standingsData
+                    .map(function(s) { return s.from_id + ':' + s.standing; })
+                    .join(',');
+                parts.push('std_data=' + encodeURIComponent(encoded));
+            }
+        }
 
         // Arrays — commas are legal in hash fragments; no encoding needed
         if (state.sec && !(state.sec.length === 1 && state.sec[0] === 'highsec')) {
@@ -1234,6 +1425,20 @@ jQuery(function ($) {
         // Booleans
         if (params.get('sl')  === '1') state.sl  = true;
         if (params.get('loc') === '1') state.loc = true;
+        if (params.get('std') === '1') state.std = true;
+
+        // Standings data embedded by sharer — array of {from_id, standing}
+        if (params.has('std_data')) {
+            try {
+                state.std_data = decodeURIComponent(params.get('std_data'))
+                    .split(',')
+                    .map(function(pair) {
+                        const parts = pair.split(':');
+                        return { from_id: parseInt(parts[0], 10), standing: parseFloat(parts[1]) };
+                    })
+                    .filter(function(s) { return !isNaN(s.from_id) && !isNaN(s.standing); });
+            } catch(_) {}
+        }
 
         // Arrays
         if (params.has('sec')) state.sec = params.get('sec').split(',');
@@ -1289,6 +1494,8 @@ jQuery(function ($) {
         $('#eaf-min-agents-scope .eaf-scope-pill[data-val="system"]').addClass('eaf-scope-pill-active');
         $('#eaf-storyline-only').prop('checked', false);
         $('#eaf-locator-only').prop('checked', false);
+        $('#eaf-standings-filter').prop('checked', false);
+        $('#eaf-standings-status').text('');
         $('#eaf-sort-by').val('agents_desc');
         sortBy = 'agents_desc';
         nearestDistances  = null;
