@@ -47,41 +47,6 @@ class EAF_SSO {
 		// AJAX: log out (clear cookie + transient).
 		add_action( 'wp_ajax_eaf_sso_logout',        [ __CLASS__, 'ajax_logout' ] );
 		add_action( 'wp_ajax_nopriv_eaf_sso_logout', [ __CLASS__, 'ajax_logout' ] );
-
-		// GDPR: register eaf_char_token with the WP Consent API standard
-		// (https://wordpress.org/plugins/wp-consent-api/). Supported by CookieYes,
-		// Complianz, CookieHub, and other major GDPR plugins — the cookie appears in
-		// cookie declarations automatically without a manual entry or scanner run.
-		// Safe to hook regardless of whether the API plugin is installed.
-		$plugin = plugin_basename( EAF_DIR . 'eve-agent-finder.php' );
-		add_filter( "wp_consent_api_registered_{$plugin}", '__return_true' );
-		add_action( 'plugins_loaded', [ __CLASS__, 'register_wp_consent_api' ] );
-	}
-
-	// ── WP Consent API cookie registration ────────────────────────────────────
-
-	/**
-	 * Registers eaf_char_token with the WP Consent API.
-	 *
-	 * wp_add_cookie_info( $name, $service, $category, $expires, $description )
-	 *
-	 * Category 'functional': the cookie enables a service explicitly requested
-	 * by the visitor (EVE SSO login). It contains no personal data and is only
-	 * ever set when the user clicks the LOG IN with EVE Online button.
-	 *
-	 * Only registers if the WP Consent API plugin is active.
-	 */
-	public static function register_wp_consent_api(): void {
-		if ( ! function_exists( 'wp_add_cookie_info' ) ) {
-			return;
-		}
-		wp_add_cookie_info(
-			self::COOKIE_NAME,
-			'EVE Agent Finder',
-			'functional',
-			'1 day',
-			'Set when a visitor authenticates via EVE Online SSO on the EVE Agent Finder. Stores a random session token (no personal data) linking the browser to an authenticated EVE character. Only set when the user explicitly clicks the LOG IN with EVE Online button.'
-		);
 	}
 
 	// ── Credential helpers ────────────────────────────────────────────────────
