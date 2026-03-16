@@ -220,6 +220,56 @@ class EAF_Calculator {
 		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	}
 
+	/**
+	 * Single-source BFS from a named system.
+	 * Returns an array of system_id => jump_distance for every reachable system.
+	 * Used by the "Nearest to" sort option on the front end.
+	 *
+	 * @param string $system_name  Case-insensitive system name entered by the user.
+	 * @return array { success, origin_id, distances } or { success, message }
+	 */
+	public static function bfs_from_system( string $system_name ): array {
+		global $wpdb;
+
+		$sys_table  = EAF_DB::t( 'systems'      );
+		$jump_table = EAF_DB::t( 'system_jumps' );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		// 1. Resolve system name → ID (case-insensitive)
+		$origin_id = $wpdb->get_var( $wpdb->prepare(
+			"SELECT system_id FROM {$sys_table} WHERE LOWER(system_name) = LOWER(%s) LIMIT 1",
+			$system_name
+		) );
+
+		if ( ! $origin_id ) {
+			return array( 'success' => false, 'message' => 'System not found.' );
+		}
+
+		// 2. Load full adjacency list
+		$jumps = $wpdb->get_results( "SELECT from_id, to_id FROM {$jump_table}", ARRAY_A );
+
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		if ( empty( $jumps ) ) {
+			return array( 'success' => false, 'message' => 'No jump data available.' );
+		}
+
+		$adj = array();
+		foreach ( $jumps as $j ) {
+			$adj[ (int) $j['from_id'] ][] = (int) $j['to_id'];
+		}
+
+		// 3. Single-source BFS
+		$distances = self::bfs( $adj, array( (int) $origin_id ) );
+
+		return array(
+			'success'   => true,
+			'origin_id' => (int) $origin_id,
+			'distances' => $distances,
+		);
+	}
+
 	/** Distribution summary for the admin panel. */
 	public static function get_distribution(): array {
 		global $wpdb;
