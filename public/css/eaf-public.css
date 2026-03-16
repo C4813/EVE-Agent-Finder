@@ -150,6 +150,7 @@
 .eaf-level-5:has(input:checked) { background: #1e1e22; border-color: #9090a0; color: #f0f0f8; }
 
 .eaf-hub-options-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.eaf-hub-options-row + .eaf-hub-options-row { margin-top: .5rem; }
 .eaf-label-inline { font-size: .97rem; color: var(--text-dim); display: flex; align-items: center; gap: .4rem; }
 .eaf-num-small {
     background: var(--bg0); border: 1px solid var(--border-hi);
@@ -449,6 +450,7 @@
     padding: .25rem .65rem;
     font-size: .88rem; color: var(--text-dim);
     border-right: 1px solid var(--border);
+    min-width: 6.5rem; text-align: left;
 }
 .eaf-min-agents-btn {
     background: none; border: none; color: var(--text-dim);
@@ -523,7 +525,8 @@
 
 /* ── Dotlan links ────────────────────────────────────────────────── */
 .eaf-dotlan-link { text-decoration: none !important; color: inherit !important; }
-.eaf-dotlan-link:hover .eaf-badge-dist { filter: brightness(1.2); }
+.eaf-dotlan-link:hover .eaf-badge-dist    { filter: brightness(1.2); }
+.eaf-dotlan-link:hover .eaf-badge-nearest { filter: brightness(1.2); }
 .eaf-sysname-link { cursor: pointer; }
 .eaf-sysname-link:hover .eaf-hub-sysname { text-decoration: underline; }
 
@@ -554,3 +557,100 @@
 .eaf-copy-btn:hover { opacity: 1; color: var(--accent); }
 .eaf-copy-btn-done  { opacity: 1 !important; color: var(--green) !important; }
 .eaf-copy-inline    { font-size: .75rem; }
+
+/* ── Nearest-to sort ─────────────────────────────────────────────── */
+.eaf-nearest-input-wrap {
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+}
+#eaf-nearest-system {
+    flex: 1; min-width: 8rem; max-width: 16rem;
+}
+#eaf-nearest-status {
+    font-size: .9rem; white-space: nowrap;
+}
+.eaf-nearest-ok    { color: var(--green); }
+.eaf-nearest-error { color: var(--red); }
+.eaf-badge-nearest {
+    background: #0d1e10; border: 1px solid #1a4020; color: var(--green);
+}
+
+/* ── Share button ────────────────────────────────────────────────── */
+.eaf-btn-share {
+    background: var(--bg2); border: 1px solid var(--border-hi);
+    color: var(--accent); transition: background .15s, color .15s;
+}
+.eaf-btn-share:hover { background: var(--accent); color: var(--bg0); }
+
+/* ── Collapse all button ─────────────────────────────────────────── */
+.eaf-btn-collapse {
+    background: var(--bg2); border: 1px solid var(--border);
+    color: var(--text-dim); margin-right: .4rem;
+}
+.eaf-btn-collapse:hover { border-color: var(--border-hi); color: var(--text); }
+
+/* ── Autocomplete dropdown ───────────────────────────────────────── */
+.eaf-autocomplete-wrap { position: relative; flex: 1; min-width: 8rem; max-width: 16rem; }
+.eaf-autocomplete-wrap #eaf-nearest-system { width: 100%; }
+.eaf-autocomplete-dropdown {
+    display: none;
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+    background: var(--bg2); border: 1px solid var(--border-hi);
+    border-radius: 0 0 4px 4px; max-height: 220px; overflow-y: auto;
+}
+.eaf-ac-item {
+    padding: .35rem .6rem; cursor: pointer; font-size: .95rem;
+    color: var(--text); border-bottom: 1px solid var(--border);
+}
+.eaf-ac-item:last-child { border-bottom: none; }
+.eaf-ac-item:hover { background: var(--bg3); color: var(--accent); }
+
+/* ── Version info button ─────────────────────────────────────────── */
+.eaf-btn-version {
+    background: #0e2035; border-color: #2a5080; color: #7ac4ff;
+}
+.eaf-btn-version:hover { background: #142840; border-color: #4a80b0; color: #a0d8ff; }
+
+/* ── Shared modal base (used by version modal; info modal keeps own classes) */
+.eaf-modal {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0,0,0,.65);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem;
+}
+.eaf-modal-box {
+    background: #0d1825; border: 1px solid #2a4060;
+    border-radius: 8px; padding: 2rem 2.25rem;
+    max-width: 680px; width: 100%; position: relative;
+    max-height: 85vh; overflow-y: auto;
+    color: #c8d8e8; line-height: 1.65;
+}
+.eaf-modal-box-wide { max-width: 780px; }
+.eaf-modal-title {
+    font-size: 1.55rem; font-weight: 700; color: #e8f0f8;
+    margin: 0 0 1.25rem; padding-right: 2rem;
+}
+.eaf-modal-close {
+    position: absolute; top: .9rem; right: 1rem;
+    background: none; border: none; color: #5a7a9a;
+    font-size: 1.4rem; cursor: pointer; line-height: 1;
+    transition: color .15s;
+}
+.eaf-modal-close:hover { color: #c8d8e8; }
+
+/* ── Changelog content ───────────────────────────────────────────── */
+.eaf-changelog-loading { color: var(--text-dim); font-style: italic; }
+.eaf-changelog-error   { color: var(--red); }
+.eaf-cl-version {
+    font-size: 1.05rem; font-weight: 700; color: var(--accent);
+    margin: 1.25rem 0 .4rem; padding-bottom: .25rem;
+    border-bottom: 1px solid var(--border);
+}
+.eaf-cl-version:first-child { margin-top: 0; }
+.eaf-cl-list {
+    margin: 0 0 .5rem 1.25rem; padding: 0;
+    list-style: disc;
+}
+.eaf-cl-list li {
+    font-size: 1rem; color: #a8c0d8;
+    margin-bottom: .3rem; line-height: 1.55;
+}
