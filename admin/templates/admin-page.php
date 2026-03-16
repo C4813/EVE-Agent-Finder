@@ -107,3 +107,115 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 		Shortcode: <code>[eve_agent_finder]</code>
 	</p>
 </div>
+
+<?php
+// ── EVE SSO Settings ───────────────────────────────────────────────────────
+// Rendered as a separate section below the import panel.
+$callback_url       = admin_url( 'admin-post.php?action=eaf_sso_callback' );
+$client_id_saved    = (string) get_option( 'eaf_sso_client_id', '' );
+$client_secret_saved = get_option( 'eaf_sso_client_secret', '' ) !== '';
+$sso_configured     = EAF_SSO::is_configured();
+?>
+<div class="wrap eaf-admin-wrap eaf-sso-settings">
+	<h1>EVE Agent Finder — EVE SSO Settings</h1>
+
+	<div class="eaf-info-box">
+		<p>
+			When a Client ID and Client Secret are saved here, front-end visitors will see a
+			<strong>LOG IN with EVE Online</strong> button in the EVE Agent Finder toolbar.
+			After authenticating, an <em>Available to my character only</em> filter becomes
+			available in Advanced options, hiding agents the character cannot access based on
+			their current standings.
+		</p>
+		<?php if ( $sso_configured ) : ?>
+		<p class="eaf-sso-status eaf-sso-status-ok">✅ EVE SSO is configured and active.</p>
+		<?php else : ?>
+		<p class="eaf-sso-status eaf-sso-status-warn">⚠ EVE SSO is not yet configured — complete the steps below.</p>
+		<?php endif; ?>
+	</div>
+
+	<!-- ── Step 1: Create developer app ─────────────────────────────────── -->
+	<div class="eaf-sso-step-card">
+		<h2><span class="eaf-sso-step-num">1</span> Create an EVE Online Developer Application</h2>
+		<ol class="eaf-sso-instructions">
+			<li>
+				Go to the <a href="https://developers.eveonline.com/applications" target="_blank" rel="noopener">EVE Online Developer Portal</a>
+				and sign in with an EVE account.
+			</li>
+			<li>Click <strong>Create New Application</strong>.</li>
+			<li>Give it a descriptive name (e.g. <em><?php echo esc_html( get_bloginfo( 'name' ) ); ?> — Agent Finder</em>).</li>
+			<li>
+				Under <strong>Connection Type</strong>, choose <strong>Authentication &amp; API Access</strong>
+				(not "Authentication Only" — we need the standings scope).
+			</li>
+			<li>
+				Under <strong>Permissions / Scopes</strong>, add exactly one scope:<br>
+				<code class="eaf-sso-scope">esi-characters.read_standings.v1</code>
+			</li>
+			<li>
+				Set the <strong>Callback URL</strong> to the value shown below. Copy it exactly — it
+				must match character-for-character.
+			</li>
+			<li>Save the application. You will be shown a <strong>Client ID</strong> and a
+				<strong>Secret Key</strong> — paste both into the fields below.</li>
+		</ol>
+
+		<table class="form-table eaf-sso-copy-table">
+			<tr>
+				<th scope="row">Callback URL</th>
+				<td>
+					<code id="eaf-callback-url"><?php echo esc_html( $callback_url ); ?></code>
+					<button type="button" class="button eaf-copy-callback" data-copy="<?php echo esc_attr( $callback_url ); ?>">
+						⧉ Copy
+					</button>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">Required Scope</th>
+				<td><code>esi-characters.read_standings.v1</code></td>
+			</tr>
+		</table>
+	</div>
+
+	<!-- ── Step 2: Enter credentials ─────────────────────────────────────── -->
+	<div class="eaf-sso-step-card">
+		<h2><span class="eaf-sso-step-num">2</span> Enter Your Application Credentials</h2>
+		<form method="post" action="options.php">
+			<?php settings_fields( 'eaf_sso_settings' ); ?>
+			<table class="form-table">
+				<tr>
+					<th scope="row"><label for="eaf_sso_client_id">Client ID</label></th>
+					<td>
+						<input
+							type="text"
+							id="eaf_sso_client_id"
+							name="eaf_sso_client_id"
+							value="<?php echo esc_attr( $client_id_saved ); ?>"
+							class="regular-text"
+							autocomplete="off"
+							placeholder="Paste your Client ID here"
+						>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="eaf_sso_client_secret">Secret Key</label></th>
+					<td>
+						<input
+							type="password"
+							id="eaf_sso_client_secret"
+							name="eaf_sso_client_secret"
+							value=""
+							class="regular-text"
+							autocomplete="new-password"
+							placeholder="<?php echo esc_attr( $client_secret_saved ? '(saved — leave blank to keep)' : 'Paste your Secret Key here' ); ?>"
+						>
+						<p class="description">
+							The Secret Key is stored securely and never displayed again after saving.
+						</p>
+					</td>
+				</tr>
+			</table>
+			<?php submit_button( 'Save SSO Credentials' ); ?>
+		</form>
+	</div>
+</div>
