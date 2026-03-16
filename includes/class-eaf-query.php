@@ -236,8 +236,36 @@ class EAF_Query {
 			$sec_counts[ $row['sec_class'] ] = (int) $row['cnt'];
 		}
 
+		// Distinct regions that have agents
+		$regions = $wpdb->get_col( "
+			SELECT DISTINCT sys.region_name
+			FROM {$agents_t} a
+			INNER JOIN {$sta_t} sta ON sta.station_id = a.location_id
+			INNER JOIN {$sys_t} sys ON sys.system_id  = sta.system_id
+			WHERE a.agent_type_id <> 1
+			  AND sys.region_name IS NOT NULL AND sys.region_name != ''
+			ORDER BY sys.region_name
+		" );
+
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-		return compact( 'factions', 'corporations', 'divisions', 'agent_types', 'levels', 'sec_counts' );
+		return compact( 'factions', 'corporations', 'divisions', 'agent_types', 'levels', 'sec_counts', 'regions' );
+	}
+
+	/**
+	 * Returns up to 10 system names that contain the given substring (case-insensitive).
+	 * Used by the "Nearest to…" autocomplete.
+	 */
+	public static function suggest_systems( string $q ): array {
+		global $wpdb;
+		$sys_t = EAF_DB::t( 'systems' );
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$like = '%' . $wpdb->esc_like( $q ) . '%';
+		$rows = $wpdb->get_col( $wpdb->prepare(
+			"SELECT system_name FROM {$sys_t} WHERE system_name LIKE %s ORDER BY system_name LIMIT 10",
+			$like
+		) );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		return $rows ?: array();
 	}
 
 	// ── Readiness ─────────────────────────────────────────────────────────────
