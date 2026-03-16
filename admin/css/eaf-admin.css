@@ -222,3 +222,86 @@
 .eaf-drop-btn { opacity: 0.4; font-size: .8rem !important; padding: 0 4px !important; line-height: 1.4 !important; min-height: unset !important; }
 .eaf-step:hover .eaf-drop-btn { opacity: 0.8; }
 .eaf-drop-btn:hover { opacity: 1 !important; }
+
+/* ── SSO Settings section ─────────────────────────────────────────── */
+.eaf-sso-settings { margin-top: 2rem; }
+/* h1 intentionally inherits WP default colour — no override */
+
+.eaf-sso-step-card {
+    background: #0b1825;
+    border: 1px solid #1c3550;
+    border-radius: 6px;
+    padding: 1.4rem 1.6rem 1.2rem;
+    margin-bottom: 1.4rem;
+}
+.eaf-sso-step-card h2 {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    font-size: 1.05rem;
+    color: #c8d8e8;
+    margin: 0 0 1rem;
+    border-bottom: 1px solid #1c3550;
+    padding-bottom: .7rem;
+}
+.eaf-sso-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    background: #1a4a7a;
+    border-radius: 50%;
+    font-size: .85rem;
+    font-weight: 700;
+    color: #a8d4ff;
+    flex-shrink: 0;
+}
+.eaf-sso-instructions {
+    color: #8ab0cc;
+    line-height: 1.8;
+    padding-left: 1.4rem;
+    margin: 0 0 1rem;
+}
+.eaf-sso-instructions li { margin-bottom: .25rem; }
+.eaf-sso-instructions strong { color: #c8d8e8; }
+.eaf-sso-scope {
+    display: inline-block;
+    background: #091420;
+    border: 1px solid #1c3550;
+    border-radius: 3px;
+    padding: .1rem .45rem;
+    font-size: .92rem;
+    color: #7aaa7a;
+    letter-spacing: .02em;
+}
+.eaf-sso-copy-table { margin-top: .5rem; }
+.eaf-sso-copy-table th { color: #c8d8e8; width: 140px; font-weight: 600; }
+.eaf-sso-copy-table td { color: #c8d8e8; }
+.eaf-sso-copy-table code {
+    background: #091420;
+    border: 1px solid #1c3550;
+    border-radius: 3px;
+    padding: .15rem .5rem;
+    font-size: .88rem;
+    color: #a8d4ff;
+    word-break: break-all;
+}
+/* Credentials form-table labels */
+.eaf-sso-step-card .form-table th { color: #c8d8e8; font-weight: 600; }
+.eaf-copy-callback {
+    margin-left: .5rem !important;
+    font-size: .82rem !important;
+    padding: 1px 8px !important;
+    vertical-align: middle;
+}
+.eaf-sso-status {
+    display: inline-block;
+    margin-top: .5rem;
+    padding: .3rem .7rem;
+    border-radius: 4px;
+    font-size: .9rem;
+    font-weight: 600;
+}
+.eaf-sso-status-ok   { background: #0f2a1a; color: #7aaa7a; border: 1px solid #2a6a3a; }
+.eaf-sso-status-warn { background: #2a1a06; color: #cc9944; border: 1px solid #6a4a1a; }
