@@ -188,4 +188,23 @@ jQuery(function ($) {
             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
             .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+
+    // ── SSO settings: copy callback URL button ────────────────────────────────
+    $(document).on('click', '.eaf-copy-callback', function() {
+        const url = $(this).data('copy');
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = url;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+        const $btn = $(this);
+        const orig = $btn.text();
+        $btn.text('\u2713 Copied!');
+        setTimeout(function() { $btn.text(orig); }, 1800);
+    });
 });
