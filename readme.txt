@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ Features include:
 7. Add `[eve_agent_finder]` to any page or post (recommended on a full-width page without a sidebar)
 
 == Changelog ==
+
+= 1.2.1 =
+* The eaf_char_token SSO session cookie is now automatically registered with CookieYes (via the cookieyes_cookie_list filter) and Complianz (via the complianz_cookie_list filter), so it appears in cookie declarations as a Strictly Necessary / Functional cookie without requiring a manual entry or scanner run
 
 = 1.2.0 =
 * Added EVE SSO authentication — a "LOG IN with EVE Online" button appears to the right of the EVE Agent Finder title in the toolbar when SSO is configured; clicking it authenticates via EVE Online's OAuth2 flow
