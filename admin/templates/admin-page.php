@@ -218,4 +218,41 @@ $sso_configured     = EAF_SSO::is_configured();
 			<?php submit_button( 'Save SSO Credentials' ); ?>
 		</form>
 	</div>
+
+	<!-- ── Step 3: GDPR compliance ───────────────────────────────────────── -->
+	<div class="eaf-sso-step-card">
+		<h2><span class="eaf-sso-step-num">3</span> GDPR Compliance — Register the Cookie</h2>
+		<p style="color:#8ab0cc;margin-bottom:1rem;">
+			When EVE SSO is active, this plugin sets a cookie named <code class="eaf-sso-scope">eaf_char_token</code>
+			in the visitor's browser when they log in. For GDPR compliance this cookie should be declared in your
+			cookie consent tool.
+		</p>
+		<p style="color:#8ab0cc;margin-bottom:1rem;">
+			Cookie scanners cannot detect this cookie automatically because it is only set after a visitor
+			completes the EVE Online login flow — it will never appear during a routine page scan.
+			<strong style="color:#c8d8e8;">You must add it manually</strong> in your cookie consent plugin's dashboard.
+		</p>
+		<table class="form-table eaf-sso-copy-table">
+			<tr>
+				<th scope="row">Cookie name</th>
+				<td><code>eaf_char_token</code></td>
+			</tr>
+			<tr>
+				<th scope="row">Category</th>
+				<td>Necessary / Functional</td>
+			</tr>
+			<tr>
+				<th scope="row">Duration</th>
+				<td>1 day</td>
+			</tr>
+			<tr>
+				<th scope="row">Script URL pattern</th>
+				<td><em style="color:#7090aa;">Leave blank</em> — this cookie is set server-side by PHP, not by any script</td>
+			</tr>
+			<tr>
+				<th scope="row">Description</th>
+				<td>Set when a visitor authenticates via EVE Online SSO on the EVE Agent Finder. Stores a random session token linking the browser to an authenticated EVE character. Only set when the user explicitly clicks the LOG IN with EVE Online button. Contains no personal data.</td>
+			</tr>
+		</table>
+	</div>
 </div>
