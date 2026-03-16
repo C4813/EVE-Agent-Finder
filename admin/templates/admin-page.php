@@ -251,7 +251,7 @@ $sso_configured     = EAF_SSO::is_configured();
 			</tr>
 			<tr>
 				<th scope="row">Description</th>
-				<td>Set when a visitor authenticates via EVE Online SSO on the EVE Agent Finder. Stores a random session token linking the browser to an authenticated EVE character. Only set when the user explicitly clicks the LOG IN with EVE Online button. Contains no personal data.</td>
+				<td>Set when a visitor authenticates via EVE Online SSO on the EVE Agent Finder. Stores a random session token linking the browser to an authenticated EVE character. Only set when the user explicitly clicks the LOG IN with EVE Online button displayed on the EVE Agent Finder plugin. Contains no personal data.</td>
 			</tr>
 		</table>
 	</div>
