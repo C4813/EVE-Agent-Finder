@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<p><strong>Min L4</strong> — minimum number of L4 agents required. Has its own <em>per system</em> / <em>per station</em> scope toggle.</p>
 			<p><strong>Storyline in system</strong> — shows only systems that have a Storyline agent in the same system.</p>
 			<p><strong><span class="eaf-locator-tag">locator</span> agents only</strong> — shows only systems containing at least one locator agent. The count in brackets shows how many locator agents match the current filters.</p>
+			<p><strong>Available to my character only</strong> — visible when you are logged in via EVE SSO. Hides agents your character cannot access based on your current standings toward their corporation or faction. The required standing threshold is: L2 ≥ 1.0, L3 ≥ 3.0, L4 ≥ 5.0, L5 ≥ 7.0. Standings are fetched from ESI and cached for 30 minutes.</p>
 
 			<h4>Sort options</h4>
 			<p>Results can be sorted by <em>Most agents</em>, <em>Furthest from Lowsec</em>, <em>Nearest to Lowsec</em>, <em>System name A→Z</em>, or <em>Hub score</em>.</p>
@@ -37,8 +38,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<p>Click any card to expand it and see individual stations and agents. Use the <strong>Collapse all</strong> button (appears when any card is open) to close all cards at once.</p>
 			<p>The <strong>⧉</strong> buttons next to system names, station names, and agent names copy that name to your clipboard.</p>
 
+			<h4>EVE SSO login</h4>
+			<p>If the site administrator has configured EVE SSO, a <strong>LOG IN with EVE Online</strong> button appears in the toolbar next to the EVE Agent Finder title. Clicking it takes you to the EVE Online login page where you authorise read-only access to your character standings — no in-game actions or wallet access are requested.</p>
+			<p>Once authenticated, the toolbar shows <em>[Authenticated as Character Name]</em> and the <strong>Available to my character only</strong> option becomes available in Advanced options. Use <em>[Change Character]</em> to switch to a different character, or <em>[Log out]</em> to clear the session without leaving the page.</p>
+
 			<h4>Sharing &amp; bookmarking</h4>
 			<p>The <strong>Share</strong> button copies the current page URL with all active filters encoded in the hash (e.g. <em>#eaf?region=Everyshore&amp;lv=4&amp;mt=Security</em>). Paste it anywhere to share an exact filtered view. Your filters are also saved automatically and restored when you return to the page.</p>
+			<p>When the <strong>Available to my character only</strong> filter is active, your standings data is embedded in the shared URL — recipients will see exactly the same filtered results without needing to log in themselves.</p>
 
 		</div>
 	</div>
