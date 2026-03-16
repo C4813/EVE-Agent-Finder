@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 		</div>
 		<div class="eaf-toolbar-right">
 			<button class="eaf-btn eaf-btn-sm eaf-btn-info" id="eaf-info-btn" title="How to use this tool">ℹ How to use</button>
+			<button class="eaf-btn eaf-btn-sm eaf-btn-share" id="eaf-share-btn" title="Copy shareable link to clipboard">⎘ Share</button>
+			<button class="eaf-btn eaf-btn-sm eaf-btn-version" id="eaf-version-btn" title="Version history &amp; changelog">📋 Version info</button>
 			<div class="eaf-view-toggle">
 				<button class="eaf-view-btn active" data-view="station" title="Hub view — grouped by system">Hubs</button>
 				<button class="eaf-view-btn"        data-view="table"   title="Flat agent table">Table</button>
@@ -34,6 +36,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 	<!-- ── Info modal ───────────────────────────────────────────── -->
 	<?php require __DIR__ . '/info-modal.php'; ?>
+
+	<!-- ── Changelog modal ──────────────────────────────────────── -->
+	<div class="eaf-modal" id="eaf-version-modal" style="display:none">
+		<div class="eaf-modal-box eaf-modal-box-wide">
+			<button class="eaf-modal-close" id="eaf-version-close" aria-label="Close">✕</button>
+			<h3 class="eaf-modal-title">Version info</h3>
+			<div id="eaf-version-content" class="eaf-changelog">
+				<div class="eaf-changelog-loading">Loading changelog…</div>
+			</div>
+		</div>
+	</div>
 
 	<!-- ── Filter panel ─────────────────────────────────────────── -->
 	<div class="eaf-filter-panel" id="eaf-filter-panel">
@@ -48,7 +61,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 					       autocomplete="off">
 				</div>
 				<div class="eaf-filter-group eaf-hub-inline" id="eaf-hub-options">
-					<label>Hub options</label>
+					<label>Advanced options</label>
+					<!-- Row 1: Min agents stepper + scope -->
 					<div class="eaf-hub-options-row">
 						<!-- Min agents stepper -->
 						<div class="eaf-min-agents-pill">
@@ -63,9 +77,31 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 							<span class="eaf-scope-pill eaf-scope-pill-active" data-val="system">per system</span>
 							<span class="eaf-scope-pill" data-val="station">per station</span>
 						</div>
+					</div>
+					<!-- Row 2: Min L4 stepper + scope -->
+					<div class="eaf-hub-options-row">
+						<div class="eaf-min-agents-pill">
+							<span class="eaf-min-agents-label">Min L4</span>
+							<button class="eaf-min-agents-btn" id="eaf-min-l4-dec" type="button" aria-label="decrease L4">−</button>
+							<span class="eaf-min-agents-val" id="eaf-min-l4-display">0</span>
+							<input type="hidden" id="eaf-min-l4-agents" value="0">
+							<button class="eaf-min-agents-btn" id="eaf-min-l4-inc" type="button" aria-label="increase L4">+</button>
+						</div>
+						<!-- Per-system / per-station scope for L4 -->
+						<div class="eaf-scope-pills" id="eaf-min-l4-scope" data-scope="system">
+							<span class="eaf-scope-pill eaf-scope-pill-active" data-val="system">per system</span>
+							<span class="eaf-scope-pill" data-val="station">per station</span>
+						</div>
+					</div>
+					<!-- Row 3: Toggles -->
+					<div class="eaf-hub-options-row">
 						<!-- Storyline toggle -->
 						<label class="eaf-check-pill">
 							<input type="checkbox" id="eaf-storyline-only"> Storyline in system
+						</label>
+						<!-- Locator toggle -->
+						<label class="eaf-check-pill">
+							<input type="checkbox" id="eaf-locator-only"> <span class="eaf-locator-tag">locator</span> agents only
 						</label>
 					</div>
 				</div>
@@ -144,14 +180,30 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 					<select id="eaf-corporation"><option value="">— All corps —</option></select>
 				</div>
 				<div class="eaf-select-row">
+					<label>Region</label>
+					<select id="eaf-region"><option value="">— All regions —</option></select>
+				</div>
+				<div class="eaf-select-row">
 					<label>Sort by</label>
 					<select id="eaf-sort-by">
 						<option value="agents_desc">Most agents</option>
 						<option value="jumps_desc">Furthest from Lowsec</option>
-						<option value="jumps_asc">Closest to Lowsec</option>
+						<option value="jumps_asc">Nearest to Lowsec</option>
 						<option value="system_asc">System name A→Z</option>
 						<option value="score_desc">Hub score</option>
+						<option value="nearest_to">Nearest to…</option>
 					</select>
+				</div>
+				<div class="eaf-select-row eaf-nearest-row" id="eaf-nearest-row" style="display:none">
+					<label>System name</label>
+					<div class="eaf-nearest-input-wrap">
+						<div class="eaf-autocomplete-wrap">
+							<input type="search" id="eaf-nearest-system"
+							       placeholder="e.g. Jita" autocomplete="off">
+							<div class="eaf-autocomplete-dropdown" id="eaf-nearest-autocomplete"></div>
+						</div>
+						<span id="eaf-nearest-status"></span>
+					</div>
 				</div>
 			</div>
 
