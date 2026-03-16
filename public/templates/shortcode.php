@@ -22,6 +22,31 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 	<div class="eaf-toolbar">
 		<div class="eaf-toolbar-left">
 			<h2 class="eaf-app-title">EVE Agent Finder</h2>
+			<?php if ( EAF_SSO::is_configured() ) : ?>
+			<!-- SSO auth zone — initial state rendered server-side; JS updates dynamically -->
+			<div class="eaf-sso-zone" id="eaf-sso-zone">
+				<?php $auth = EAF_SSO::get_current_auth(); ?>
+				<?php if ( $auth ) :
+					$_change_url = EAF_SSO::build_auth_url(
+						( is_ssl() ? 'https://' : 'http://' )
+						. sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ?? '' ) )
+						. sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' ) )
+					);
+				?>
+					<span class="eaf-sso-authed-label">[Authenticated as <strong><?php echo esc_html( $auth['character_name'] ); ?></strong>]</span>
+					<a href="<?php echo esc_url( $_change_url ); ?>" class="eaf-sso-change-btn">[Change Character]</a>
+					<button type="button" id="eaf-sso-logout-btn" class="eaf-sso-logout-link">[Log out]</button>
+				<?php else :
+					$return_url = ( is_ssl() ? 'https://' : 'http://' )
+						. sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ?? '' ) )
+						. sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' ) );
+				?>
+					<a href="<?php echo esc_url( EAF_SSO::build_auth_url( $return_url ) ); ?>" class="eaf-sso-login-btn" id="eaf-sso-login-btn">
+						<img src="<?php echo esc_url( EAF_URL . 'public/img/eve-sso.png' ); ?>" alt="LOG IN with EVE Online">
+					</a>
+				<?php endif; ?>
+			</div>
+			<?php endif; ?>
 		</div>
 		<div class="eaf-toolbar-right">
 			<button class="eaf-btn eaf-btn-sm eaf-btn-info" id="eaf-info-btn" title="How to use this tool">ℹ How to use</button>
@@ -104,6 +129,16 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 							<input type="checkbox" id="eaf-locator-only"> <span class="eaf-locator-tag">locator</span> agents only
 						</label>
 					</div>
+					<?php if ( EAF_SSO::is_configured() ) : ?>
+					<!-- Row 4: Standings filter — only shown when a character is authenticated -->
+					<div class="eaf-hub-options-row eaf-standings-row" id="eaf-standings-row" style="display:none">
+						<label class="eaf-check-pill eaf-standings-pill">
+							<input type="checkbox" id="eaf-standings-filter">
+							<span class="eaf-standings-label">Available to my character only</span>
+						</label>
+						<span class="eaf-standings-status" id="eaf-standings-status"></span>
+					</div>
+					<?php endif; ?>
 				</div>
 			</div>
 
