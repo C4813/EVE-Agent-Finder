@@ -53,6 +53,7 @@ Features include:
 * Added EVE SSO Settings section to the admin panel: step-by-step instructions for creating an EVE Online Developer Application, required scope (esi-characters.read_standings.v1), one-click copy of the callback URL, and secure credential storage; the Client Secret is never echoed back to the browser after saving
 * Reset filters button now appears even when filters produce zero results, and correctly clears the standings filter toggle
 * uninstall.php updated to remove all SSO data on deletion: eaf_sso_client_id, eaf_sso_client_secret options, and all eaf_* transients
+* Updated "How to use" modal to document EVE SSO login, the "Available to my character only" standings filter, standing thresholds by agent level, and the standings-in-shared-URL behaviour
 
 = 1.1.0 =
 * Added locator-only filter toggle in Advanced options, with live agent count hint
