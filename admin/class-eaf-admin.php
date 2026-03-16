@@ -14,6 +14,7 @@ class EAF_Admin {
 	public function init(): void {
 		add_action( 'admin_menu',            [ $this, 'register_menu'  ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		add_action( 'admin_init',            [ $this, 'register_sso_settings' ] );
 		add_action( 'wp_ajax_eaf_sde_zip_import', [ $this, 'ajax_zip_import' ] );
 		add_action( 'wp_ajax_eaf_import_bfs',     [ $this, 'ajax_bfs'        ] );
 		add_action( 'wp_ajax_eaf_drop_step',      [ $this, 'ajax_drop_step'  ] );
@@ -61,6 +62,24 @@ class EAF_Admin {
 		];
 
 		require EAF_DIR . 'admin/templates/admin-page.php';
+	}
+
+	// ── SSO Settings Registration ─────────────────────────────────────────────
+
+	public function register_sso_settings(): void {
+		// Client ID — stored as plain text.
+		register_setting( 'eaf_sso_settings', 'eaf_sso_client_id', [
+			'sanitize_callback' => 'sanitize_text_field',
+		] );
+
+		// Client Secret — never echoed back to the browser.
+		// If the field is left blank, the existing value is preserved.
+		register_setting( 'eaf_sso_settings', 'eaf_sso_client_secret', [
+			'sanitize_callback' => static function ( $val ) {
+				$val = (string) wp_unslash( $val );
+				return $val !== '' ? $val : (string) get_option( 'eaf_sso_client_secret', '' );
+			},
+		] );
 	}
 
 	// ── AJAX: SDE zip import ─────────────────────────────────────────────────
