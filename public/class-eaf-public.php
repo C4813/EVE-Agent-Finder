@@ -26,6 +26,12 @@ class EAF_Public {
 		add_action(    'wp_ajax_nopriv_eaf_agents',   [ $this, 'ajax_agents'      ] );
 		add_action(    'wp_ajax_eaf_filters',         [ $this, 'ajax_filters'     ] );
 		add_action(    'wp_ajax_nopriv_eaf_filters',  [ $this, 'ajax_filters'     ] );
+		add_action(    'wp_ajax_eaf_nearest',         [ $this, 'ajax_nearest'     ] );
+		add_action(    'wp_ajax_nopriv_eaf_nearest',  [ $this, 'ajax_nearest'     ] );
+		add_action(    'wp_ajax_eaf_suggest',         [ $this, 'ajax_suggest'     ] );
+		add_action(    'wp_ajax_nopriv_eaf_suggest',  [ $this, 'ajax_suggest'     ] );
+		add_action(    'wp_ajax_eaf_changelog',       [ $this, 'ajax_changelog'   ] );
+		add_action(    'wp_ajax_nopriv_eaf_changelog',[ $this, 'ajax_changelog'   ] );
 	}
 
 	// ── Assets ────────────────────────────────────────────────────────────────
@@ -108,5 +114,53 @@ class EAF_Public {
 			'agents' => $agents,
 			'total'  => count( $agents ),
 		] );
+	}
+
+	// ── AJAX: nearest-to BFS ──────────────────────────────────────────────────
+
+	public function ajax_nearest(): void {
+		check_ajax_referer( 'eaf_public', 'nonce' );
+		$system_name = sanitize_text_field( wp_unslash( $_POST['system_name'] ?? '' ) );
+		if ( ! $system_name ) {
+			wp_send_json_error( array( 'message' => 'No system name provided.' ) );
+		}
+		$result = EAF_Calculator::bfs_from_system( $system_name );
+		if ( ! $result['success'] ) {
+			wp_send_json_error( $result );
+		}
+		wp_send_json_success( $result );
+	}
+
+	// ── AJAX: system name autocomplete ────────────────────────────────────────
+
+	public function ajax_suggest(): void {
+		check_ajax_referer( 'eaf_public', 'nonce' );
+		$q = sanitize_text_field( wp_unslash( $_POST['q'] ?? '' ) );
+		if ( strlen( $q ) < 2 ) {
+			wp_send_json_success( array() );
+		}
+		wp_send_json_success( EAF_Query::suggest_systems( $q ) );
+	}
+
+	// ── AJAX: changelog from readme.txt ───────────────────────────────────────
+
+	public function ajax_changelog(): void {
+		check_ajax_referer( 'eaf_public', 'nonce' );
+		$readme = EAF_DIR . 'readme.txt';
+		if ( ! file_exists( $readme ) ) {
+			wp_send_json_error( array( 'message' => 'readme.txt not found.' ) );
+		}
+		$content = file_get_contents( $readme ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		// Extract everything from == Changelog == onwards
+		$pos = strpos( $content, '== Changelog ==' );
+		if ( $pos === false ) {
+			wp_send_json_error( array( 'message' => 'No changelog section found.' ) );
+		}
+		$changelog = trim( substr( $content, $pos + strlen( '== Changelog ==' ) ) );
+		// Trim at the next == section == if one exists
+		if ( preg_match( '/\n== [^=]+ ==/', $changelog, $m, PREG_OFFSET_CAPTURE ) ) {
+			$changelog = trim( substr( $changelog, 0, $m[0][1] ) );
+		}
+		wp_send_json_success( array( 'changelog' => $changelog ) );
 	}
 }
