@@ -33,8 +33,17 @@ jQuery(function ($) {
     let sortBy         = 'agents_desc';
     let lastSearch     = '';   // tracks last search value to avoid spurious re-renders
 
+    // ── Nearest-to state ──────────────────────────────────────────────────────
+    let nearestDistances  = null;  // null = not loaded; object = system_id(str) → jumps
+    let nearestOriginName = '';    // the resolved system name confirmed by the server
+
     // Cache all corp data for faction→corp filtering
     let allCorps = [];
+    // Cache all region names for region select filtering
+    let allRegions = [];
+
+    // ── URL hash & localStorage ───────────────────────────────────────────────
+    const LS_KEY = 'eaf_filters_v2';
 
     // ── Selectors ─────────────────────────────────────────────────────────────
     const $app         = $('.eaf-app');
@@ -175,6 +184,8 @@ jQuery(function ($) {
 
             populateFilterOptions();
             applyDefaultFilters();
+            const saved = loadSavedState();
+            if (saved) { applyState(saved); }
             updateSliderMax(allAgents);
             bindEvents();
             render();
@@ -213,6 +224,14 @@ jQuery(function ($) {
 
         // Corporations (full list, will be filtered on faction change)
         populateCorpSelect('');
+
+        // Regions
+        allRegions = filterOptions.regions || [];
+        const $reg = $('#eaf-region');
+        $reg.empty().append('<option value="">— All regions —</option>');
+        allRegions.forEach(function(r) {
+            $reg.append('<option value="' + esc(r) + '">' + esc(r) + '</option>');
+        });
 
         // Divisions (multi-select)
         const $div = $('#eaf-division');
@@ -304,10 +323,38 @@ jQuery(function ($) {
             if ($(e.target).is('#eaf-info-modal')) $(this).fadeOut(150);
         });
 
+        // Version info modal
+        $('#eaf-version-btn').on('click', function() {
+            const $modal = $('#eaf-version-modal');
+            const $content = $('#eaf-version-content');
+            $modal.fadeIn(180);
+            if ($content.find('.eaf-changelog-loading').length) {
+                ajaxPost({ action: 'eaf_changelog' })
+                    .then(function(resp) {
+                        $content.html(renderChangelog(resp.data.changelog));
+                    })
+                    .catch(function() {
+                        $content.html('<p class="eaf-changelog-error">Could not load changelog.</p>');
+                    });
+            }
+        });
+        $('#eaf-version-close').on('click', function() {
+            $('#eaf-version-modal').fadeOut(150);
+        });
+        $('#eaf-version-modal').on('click', function(e) {
+            if ($(e.target).is('#eaf-version-modal')) $(this).fadeOut(150);
+        });
+
         // Realtime filters — non-search controls (instant render)
         $app.on('change', '#eaf-level-filter input, '
             + '#eaf-mission-type input, #eaf-division, #eaf-agent-type, #eaf-faction, #eaf-corporation, '
-            + '#eaf-storyline-only', debounce(render, 180));
+            + '#eaf-region, #eaf-storyline-only, #eaf-locator-only', debounce(render, 180));
+
+        // Faction → filter corp list (region is independent — no cascade needed)
+        $('#eaf-faction').on('change', function() {
+            populateCorpSelect($(this).val());
+            render();
+        });
 
         // Search box — only re-render when the value actually changes
         // Using input + lastSearch guard prevents re-render on focus/click events
@@ -343,6 +390,15 @@ jQuery(function ($) {
             render();
         });
 
+        // Min-L4 scope toggle
+        $app.on('click', '#eaf-min-l4-scope .eaf-scope-pill', function() {
+            const val = $(this).data('val');
+            $('#eaf-min-l4-scope').data('scope', val);
+            $('#eaf-min-l4-scope .eaf-scope-pill').removeClass('eaf-scope-pill-active');
+            $(this).addClass('eaf-scope-pill-active');
+            render();
+        });
+
         // Security class change → reload agents from server (different sec classes = different data)
         $app.on('change', '#eaf-sec-class input', debounce(function() {
             const highsecOn = $('#eaf-sec-class input[value=highsec]').is(':checked');
@@ -359,23 +415,108 @@ jQuery(function ($) {
         // Sort
         $('#eaf-sort-by').on('change', function() {
             sortBy = $(this).val();
+            const isNearest = sortBy === 'nearest_to';
+            $('#eaf-nearest-row').toggle(isNearest);
+            if (!isNearest) {
+                render();
+            } else if (nearestDistances) {
+                render(); // distances already loaded from a previous lookup
+            }
+            // if nearest_to selected but no distances yet, wait for the user to type
+        });
+
+        // Nearest-to system input — fire AJAX after the user stops typing
+        $app.on('input search', '#eaf-nearest-system', debounce(function() {
+            const name = $(this).val().trim();
+            if (!name) return;
+            fetchNearestDistances(name);
+        }, 500));
+
+        // Min L4 stepper
+        $app.on('click', '#eaf-min-l4-dec', function() {
+            const $inp = $('#eaf-min-l4-agents');
+            const v = Math.max(0, parseInt($inp.val(), 10) - 1);
+            $inp.val(v);
+            $('#eaf-min-l4-display').text(v);
+            render();
+        });
+        $app.on('click', '#eaf-min-l4-inc', function() {
+            const $inp = $('#eaf-min-l4-agents');
+            const v = Math.min(20, parseInt($inp.val(), 10) + 1);
+            $inp.val(v);
+            $('#eaf-min-l4-display').text(v);
             render();
         });
 
-        // Faction → filter corp list
-        $('#eaf-faction').on('change', function() {
-            populateCorpSelect($(this).val());
-            render();
+        // Share button — copy current URL (with hash) to clipboard
+        $app.on('click', '#eaf-share-btn', function() {
+            saveState();
+            const url = window.location.href;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = url; document.body.appendChild(ta);
+                ta.select(); document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            const $btn = $(this);
+            const orig = $btn.text();
+            $btn.text('✓ Copied!');
+            setTimeout(function() { $btn.text(orig); }, 1800);
         });
 
-        // Expand / collapse hub cards
+        // Collapse all button — shown when any card is expanded
+        $results.on('click', '#eaf-collapse-all', function() {
+            $results.find('.eaf-hub-card.expanded').each(function() {
+                $(this).removeClass('expanded').find('.eaf-hub-body').slideUp(200);
+            });
+            $(this).hide();
+        });
+
+        // Show/hide collapse-all when a card is expanded/collapsed
         $results.on('click', '.eaf-hub-header', function(e) {
-            // Ignore clicks on interactive children (buttons, links, inputs)
             if ($(e.target).closest('button, a, input, select').length) return;
             const $card = $(this).closest('.eaf-hub-card');
             $card.toggleClass('expanded');
             $card.find('.eaf-hub-body').stop(true).slideToggle(200);
+            const anyExpanded = $results.find('.eaf-hub-card.expanded').length > 0;
+            $results.find('#eaf-collapse-all').toggle(anyExpanded);
         });
+
+        // Autocomplete for nearest-to system input
+        $app.on('input', '#eaf-nearest-system', debounce(function() {
+            const q = $(this).val().trim();
+            const $drop = $('#eaf-nearest-autocomplete');
+            if (q.length < 2) { $drop.hide().empty(); return; }
+            ajaxPost({ action: 'eaf_suggest', q: q }).then(function(resp) {
+                const names = resp.data || [];
+                $drop.empty();
+                if (!names.length) { $drop.hide(); return; }
+                names.forEach(function(name) {
+                    $drop.append('<div class="eaf-ac-item" data-name="' + esc(name) + '">' + esc(name) + '</div>');
+                });
+                $drop.show();
+            }).catch(function() { $drop.hide().empty(); });
+        }, 250));
+
+        // Select autocomplete item
+        $app.on('click', '.eaf-ac-item', function() {
+            const name = $(this).data('name');
+            $('#eaf-nearest-system').val(name);
+            $('#eaf-nearest-autocomplete').hide().empty();
+            fetchNearestDistances(name);
+        });
+
+        // Hide autocomplete on outside click
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.eaf-autocomplete-wrap').length) {
+                $('#eaf-nearest-autocomplete').hide().empty();
+            }
+        });
+
+        // Expand / collapse hub cards
+        // (handled above with collapse-all toggle — remove old duplicate handler)
 
         // Table sort column headers
         $results.on('click', '.eaf-th-sort', function() {
@@ -421,11 +562,13 @@ jQuery(function ($) {
         const atIds      = ($('#eaf-agent-type').val() || '').split(',').map(Number).filter(Boolean);
         const factionId  = parseInt($('#eaf-faction').val() || '0', 10);
         const corpId     = parseInt($('#eaf-corporation').val() || '0', 10);
+        const regionName = $('#eaf-region').val() || '';
         const minJumps   = parseInt($('#eaf-min-jumps-range').val(), 10);
+        const locatorOnly = $('#eaf-locator-only').is(':checked');
 
         return { q, secClasses, levels, missionTypes,
                  divIds: divIds.map(Number).filter(Boolean),
-                 atIds, factionId, corpId, minJumps };
+                 atIds, factionId, corpId, regionName, minJumps, locatorOnly };
     }
 
     function applyFilters(agents) {
@@ -450,6 +593,9 @@ jQuery(function ($) {
             if (f.atIds.length && !f.atIds.includes(a.agent_type_id)) return false;
             if (f.factionId && a.faction_id !== f.factionId) return false;
             if (f.corpId && a.corporation_id !== f.corpId) return false;
+            if (f.regionName && a.region_name !== f.regionName) return false;
+
+            if (f.locatorOnly && !a.is_locator) return false;
 
             if (f.q) {
                 const haystack = [
@@ -491,7 +637,7 @@ jQuery(function ($) {
 
     function render() {
         const filtered = applyFilters(allAgents);
-
+        saveState();
         if (currentView === 'station') {
             renderHubView(filtered);
         } else {
@@ -505,7 +651,9 @@ jQuery(function ($) {
 
     function renderHubView(filtered) {
         const minAgents    = parseInt($('#eaf-min-agents').val(), 10) || 1;
+        const minL4        = parseInt($('#eaf-min-l4-agents').val(), 10) || 0;
         const minScope     = $('#eaf-min-agents-scope').data('scope') || 'system';
+        const minL4Scope   = $('#eaf-min-l4-scope').data('scope') || 'system';
         const storylineOnly= $('#eaf-storyline-only').is(':checked');
 
         // ── Group filtered agents by system → station ─────────────────────
@@ -555,6 +703,18 @@ jQuery(function ($) {
             systems = systems.filter(function(sys) { return sys.storyline_distance === 0; });
         }
 
+        // ── Min L4 agents filter ──────────────────────────────────────────
+        if (minL4 > 0) {
+            systems = systems.filter(function(sys) {
+                if (minL4Scope === 'station') {
+                    return Object.values(sys.stations).some(function(sta) {
+                        return sta.agents.filter(function(a) { return a.level === 4; }).length >= minL4;
+                    });
+                }
+                return sys.agents.filter(function(a) { return a.level === 4; }).length >= minL4;
+            });
+        }
+
         // ── Score and sort ────────────────────────────────────────────────
         systems.forEach(function(sys) { sys.hub_score = computeSystemHubScore(sys); });
         systems = sortSystems(systems);
@@ -565,6 +725,12 @@ jQuery(function ($) {
         $slLabel.find('.eaf-sl-count').remove();
         $slLabel.append('<span class="eaf-sl-count eaf-count-hint"> (' + slInSysCount + ')</span>');
 
+        // Update locator-only label with agent count (before station/system grouping)
+        const locatorAgentCount = filtered.filter(function(a) { return a.is_locator; }).length;
+        const $locLabel = $('#eaf-locator-only').closest('label');
+        $locLabel.find('.eaf-locator-count').remove();
+        $locLabel.append('<span class="eaf-locator-count eaf-count-hint"> (' + locatorAgentCount + ')</span>');
+
         if (systems.length === 0) {
             $results.html('<div class="eaf-empty">No systems match your filters. Try relaxing the constraints — e.g. reduce "min agents in system" to 1.</div>');
             return;
@@ -573,6 +739,7 @@ jQuery(function ($) {
         const agentCount = filtered.length;
         let html = '<div class="eaf-hub-count">'
             + '<span>Showing ' + agentCount.toLocaleString() + ' agent' + (agentCount !== 1 ? 's' : '') + ' in ' + systems.length.toLocaleString() + ' system' + (systems.length !== 1 ? 's' : '') + '</span>'
+            + '<button class="eaf-btn eaf-btn-collapse eaf-btn-sm eaf-collapse-all-btn" id="eaf-collapse-all" style="display:none">↑ Collapse all</button>'
             + '<button class="eaf-btn eaf-btn-reset eaf-btn-sm" id="eaf-reset-filters">↺ Reset filters</button>'
             + '</div>';
         html += '<div class="eaf-hub-list">';
@@ -610,6 +777,11 @@ jQuery(function ($) {
                 case 'jumps_asc':   return (a.lowsec_distance === -1 ? 9999 : a.lowsec_distance) - (b.lowsec_distance === -1 ? 9999 : b.lowsec_distance);
                 case 'system_asc':  return a.system_name.localeCompare(b.system_name);
                 case 'score_desc':  return b.hub_score - a.hub_score;
+                case 'nearest_to': {
+                    const da = nearestDistances ? (nearestDistances[String(a.system_id)] ?? 99999) : 99999;
+                    const db = nearestDistances ? (nearestDistances[String(b.system_id)] ?? 99999) : 99999;
+                    return da - db;
+                }
                 default:            return b.agents.length - a.agents.length;
             }
         });
@@ -656,16 +828,68 @@ jQuery(function ($) {
             }).join('');
 
         // Highlight logic: same mission type AND same level
+        // When level/mission-type filters are active, only count agents matching those filters
+        // so the gold bar reflects the filtered view and the tooltip stays unambiguous.
+        const f = getFilters();
+        const filtersActive = f.levels.length > 0 || f.missionTypes.length > 0;
+        const highlightAgents = sys.agents.filter(function(a) {
+            if (f.levels.length && !f.levels.includes(a.level)) return false;
+            if (f.missionTypes.length) {
+                const mt = getMissionType(a.division_id, a.agent_type_name, a.division_name);
+                if (!mt || !f.missionTypes.includes(mt)) return false;
+            }
+            return true;
+        });
         const typeLevelCounts = {};
-        sys.agents.forEach(function(a) {
+        highlightAgents.forEach(function(a) {
             const mt = getMissionType(a.division_id, a.agent_type_name, a.division_name) || 'Other';
             const key = mt + '|' + a.level;
             typeLevelCounts[key] = (typeLevelCounts[key] || 0) + 1;
         });
 
-        const stationCount   = Object.keys(sys.stations).length;
-        const multiSameDiv   = Object.values(typeLevelCounts).some(function(c) { return c > 1; });
+        // All type|level combos that have more than one agent
+        const qualifyingKeys = Object.keys(typeLevelCounts).filter(function(k) { return typeLevelCounts[k] > 1; });
+        const multiSameDiv   = qualifyingKeys.length > 0;
         const highlightClass = multiSameDiv ? 'eaf-hub-highlight' : '';
+
+        // Tooltip: generic when no filters are influencing the result;
+        // specific when level/mission-type filters are active.
+        let highlightTitle = 'This system has multiple agents of the same mission type and level';
+        if (multiSameDiv && filtersActive) {
+            // Group qualifying keys by mission type → { 'Security': [3,4], … }
+            const byType = {};
+            qualifyingKeys.forEach(function(k) {
+                const p  = k.split('|');
+                const mt = p[0], lv = parseInt(p[1], 10);
+                if (!byType[mt]) byType[mt] = [];
+                byType[mt].push(lv);
+            });
+            Object.values(byType).forEach(function(lvs) { lvs.sort(function(a,b){return a-b;}); });
+
+            // Build one natural-language clause per type
+            function joinLevels(lvs) {
+                const tags = lvs.map(function(l) { return 'L' + l; });
+                if (tags.length === 1) return tags[0];
+                return tags.slice(0, -1).join(', ') + ' and ' + tags[tags.length - 1];
+            }
+
+            const typeEntries = Object.entries(byType);
+            if (typeEntries.length === 1) {
+                const mt  = typeEntries[0][0];
+                const lvs = typeEntries[0][1];
+                if (lvs.length === 1) {
+                    highlightTitle = 'This system has multiple L' + lvs[0] + ' ' + mt + ' agents';
+                } else {
+                    highlightTitle = 'This system has multiple ' + joinLevels(lvs) + ' ' + mt + ' agents';
+                }
+            } else {
+                // Multiple types qualify — list each clause
+                const clauses = typeEntries.map(function(e) {
+                    return joinLevels(e[1]) + ' ' + e[0];
+                });
+                highlightTitle = 'This system has multiple agents: ' + clauses.join(', ');
+            }
+        }
 
         const slDist   = sys.storyline_distance;
         const slSystem = sys.agents[0] && sys.agents[0].storyline_system;
@@ -689,9 +913,11 @@ jQuery(function ($) {
             }
         }
 
+        const stationCount   = Object.keys(sys.stations).length;
+
         let h = '<div class="eaf-hub-card ' + highlightClass + '">';
         if (multiSameDiv) {
-            h += '<span class="eaf-highlight-bar" title="This system has multiple agents of the same mission type and level"></span>';
+            h += '<span class="eaf-highlight-bar" title="' + esc(highlightTitle) + '"></span>';
         }
         h += '<div class="eaf-hub-header">';
 
@@ -736,6 +962,16 @@ jQuery(function ($) {
                 h += distBadge;
             }
         }
+        if (sortBy === 'nearest_to' && nearestDistances) {
+            const nd = nearestDistances[String(sys.system_id)];
+            const ndTxt = nd !== undefined ? nd + ' jump' + (nd !== 1 ? 's' : '') + ' from ' + esc(nearestOriginName) : 'unreachable';
+            const ndBadge = '<span class="eaf-badge eaf-badge-nearest">' + ndTxt + '</span>';
+            if (nd !== undefined) {
+                h += '<a class="eaf-dotlan-link" href="https://evemaps.dotlan.net/route/' + encodeURIComponent(sys.system_name) + ':' + encodeURIComponent(nearestOriginName) + '" target="_blank" rel="noopener">' + ndBadge + '</a>';
+            } else {
+                h += ndBadge;
+            }
+        }
         h += '  <span class="eaf-score" title="Composite score: total agents ×2, L4 agents ×3, unique corporations ×1.5, stations ×1, storyline proximity bonus, distance from Lowsec ×0.3">Score ' + sys.hub_score.toFixed(1) + '</span>';
         h += '  <div class="eaf-toggle-arrow">▼</div>';
         h += '</div>';
@@ -760,14 +996,14 @@ jQuery(function ($) {
         });
         sortedStations.forEach(function(sta) {
             h += '<div class="eaf-hub-station-section">';
-            h += '  <div class="eaf-hub-station-label">' + esc(sta.station_name || 'Station #' + sta.station_id) + '</div>';
+            h += '  <div class="eaf-hub-station-label"><button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(sta.station_name || '') + '" title="Copy station name">⧉</button> ' + esc(sta.station_name || 'Station #' + sta.station_id) + '</div>';
             h += '  <table class="eaf-table"><thead><tr>';
             h += '    <th>Agent</th><th>Level</th><th>Division</th><th>Type</th><th>Corporation</th><th>Faction</th>';
             h += '  </tr></thead><tbody>';
 
             sta.agents.forEach(function(a) {
                 h += '<tr class="eaf-agent-row">';
-                h += '<td><strong>' + esc(a.agent_name) + '</strong>' + (a.is_locator ? ' <span class="eaf-locator-tag">locator</span>' : '') + ' <button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(a.agent_name) + '" title="Copy agent name">⧉</button></td>';
+                h += '<td><button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(a.agent_name) + '" title="Copy agent name">⧉</button> <strong>' + esc(a.agent_name) + '</strong>' + (a.is_locator ? ' <span class="eaf-locator-tag">locator</span>' : '') + '</td>';
                 h += '<td><span class="eaf-lbadge eaf-level-' + a.level + '">L' + a.level + '</span></td>';
                 h += '<td>' + esc(getMissionType(a.division_id, a.agent_type_name, a.division_name) || a.division_name) + '</td>';
                 h += '<td><span class="eaf-type-pill">' + esc(fmtAgentType(a.agent_type_name)) + '</span></td>';
@@ -848,7 +1084,7 @@ jQuery(function ($) {
             const distTxt    = dist >= 0 ? String(dist) : '—';
             const distClass  = dist < 0 ? 'eaf-dist-na' : dist >= 10 ? 'eaf-dist-very-safe' : dist >= 7 ? 'eaf-dist-safe' : dist >= 4 ? 'eaf-dist-medium' : 'eaf-dist-close';
             h += '<tr class="eaf-agent-row">';
-            h += '<td>' + esc(a.agent_name) + '</td>';
+            h += '<td><button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(a.agent_name) + '" title="Copy agent name">⧉</button> ' + esc(a.agent_name) + (a.is_locator ? ' <span class="eaf-locator-tag">locator</span>' : '') + '</td>';
             h += '<td><span class="eaf-lbadge eaf-level-' + a.level + '">L' + a.level + '</span></td>';
             h += '<td>' + esc(getMissionType(a.division_id, a.agent_type_name, a.division_name) || a.division_name) + '</td>';
             h += '<td><span class="eaf-type-pill">' + esc(fmtAgentType(a.agent_type_name)) + '</span></td>';
@@ -870,6 +1106,163 @@ jQuery(function ($) {
         $results.html(h);
     }
 
+    // ── URL hash & localStorage ───────────────────────────────────────────────
+
+    function serialiseState() {
+        const f = getFilters();
+        const state = {
+            q:          f.q || undefined,
+            sec:        $('#eaf-sec-class input:checked').map(function(){ return this.value; }).get(),
+            lv:         f.levels.length    ? f.levels    : undefined,
+            mt:         f.missionTypes.length ? f.missionTypes : undefined,
+            at:         $('#eaf-agent-type').val() || undefined,
+            fac:        f.factionId        || undefined,
+            corp:       f.corpId           || undefined,
+            region:     f.regionName       || undefined,
+            jumps:      f.minJumps         || undefined,
+            minA:       parseInt($('#eaf-min-agents').val(), 10) !== 1 ? parseInt($('#eaf-min-agents').val(), 10) : undefined,
+            minL4:      parseInt($('#eaf-min-l4-agents').val(), 10) || undefined,
+            scope:      $('#eaf-min-agents-scope').data('scope') !== 'system' ? $('#eaf-min-agents-scope').data('scope') : undefined,
+            l4scope:    $('#eaf-min-l4-scope').data('scope') !== 'system' ? $('#eaf-min-l4-scope').data('scope') : undefined,
+            sl:         $('#eaf-storyline-only').is(':checked') || undefined,
+            loc:        $('#eaf-locator-only').is(':checked')   || undefined,
+            sort:       sortBy !== 'agents_desc' ? sortBy : undefined,
+            nearest:    nearestOriginName || undefined,
+            view:       currentView !== 'station' ? currentView : undefined,
+        };
+        // Strip undefined keys
+        Object.keys(state).forEach(function(k) { if (state[k] === undefined) delete state[k]; });
+        return state;
+    }
+
+    function applyState(state) {
+        if (!state) return;
+        if (state.q)      { $('#eaf-search').val(state.q); lastSearch = state.q; }
+        if (state.sec)    {
+            $('#eaf-sec-class input').prop('checked', false);
+            state.sec.forEach(function(v) { $('#eaf-sec-class input[value="' + v + '"]').prop('checked', true); });
+            const highsecOn = $('#eaf-sec-class input[value=highsec]').is(':checked');
+            $('.eaf-highsec-only').toggleClass('eaf-filter-disabled', !highsecOn);
+        }
+        if (state.lv)     { state.lv.forEach(function(v) { $('#eaf-level-filter input[value="' + v + '"]').prop('checked', true); }); }
+        if (state.mt)     { state.mt.forEach(function(v) { $('#eaf-mission-type input[value="' + v + '"]').prop('checked', true); }); }
+        if (state.at)     { $('#eaf-agent-type').val(state.at); }
+        if (state.fac)    { $('#eaf-faction').val(state.fac); populateCorpSelect(state.fac); }
+        if (state.corp)   { $('#eaf-corporation').val(state.corp); }
+        if (state.region) { $('#eaf-region').val(state.region); }
+        if (state.jumps)  { $('#eaf-min-jumps-range').val(state.jumps); updateRangeLabel('eaf-min-jumps-range', 'eaf-min-jumps-val', false); }
+        if (state.minA)   { $('#eaf-min-agents').val(state.minA); $('#eaf-min-agents-display').text(state.minA); }
+        if (state.minL4)  { $('#eaf-min-l4-agents').val(state.minL4); $('#eaf-min-l4-display').text(state.minL4); }
+        if (state.scope && state.scope !== 'system') {
+            $('#eaf-min-agents-scope').data('scope', state.scope);
+            $('#eaf-min-agents-scope .eaf-scope-pill').removeClass('eaf-scope-pill-active');
+            $('#eaf-min-agents-scope .eaf-scope-pill[data-val="' + state.scope + '"]').addClass('eaf-scope-pill-active');
+        }
+        if (state.l4scope && state.l4scope !== 'system') {
+            $('#eaf-min-l4-scope').data('scope', state.l4scope);
+            $('#eaf-min-l4-scope .eaf-scope-pill').removeClass('eaf-scope-pill-active');
+            $('#eaf-min-l4-scope .eaf-scope-pill[data-val="' + state.l4scope + '"]').addClass('eaf-scope-pill-active');
+        }
+        if (state.sl)     { $('#eaf-storyline-only').prop('checked', true); }
+        if (state.loc)    { $('#eaf-locator-only').prop('checked', true); }
+        if (state.sort)   {
+            sortBy = state.sort;
+            $('#eaf-sort-by').val(state.sort);
+            if (state.sort === 'nearest_to') { $('#eaf-nearest-row').show(); }
+        }
+        if (state.nearest && sortBy === 'nearest_to') {
+            $('#eaf-nearest-system').val(state.nearest);
+            fetchNearestDistances(state.nearest);
+        }
+        if (state.view && state.view !== 'station') {
+            currentView = state.view;
+            $('.eaf-view-btn').removeClass('active');
+            $('.eaf-view-btn[data-view="' + state.view + '"]').addClass('active');
+            $('#eaf-hub-options').toggle(state.view === 'station');
+        }
+    }
+
+    function saveState() {
+        const state  = serialiseState();
+        const parts  = [];
+
+        // Scalar values
+        const scalars = ['q', 'at', 'fac', 'corp', 'region', 'jumps', 'minA', 'minL4',
+                         'scope', 'l4scope', 'sort', 'nearest', 'view'];
+        scalars.forEach(function(k) {
+            if (state[k] !== undefined) parts.push(k + '=' + encodeURIComponent(state[k]));
+        });
+
+        // Booleans
+        if (state.sl)  parts.push('sl=1');
+        if (state.loc) parts.push('loc=1');
+
+        // Arrays — commas are legal in hash fragments; no encoding needed
+        if (state.sec && !(state.sec.length === 1 && state.sec[0] === 'highsec')) {
+            parts.push('sec=' + state.sec.join(','));
+        }
+        if (state.lv)  parts.push('lv='  + state.lv.join(','));
+        if (state.mt)  parts.push('mt='  + state.mt.join(','));
+
+        const qs   = parts.join('&');
+        const hash = qs ? '#eaf?' + qs : '';
+        try { history.replaceState(null, '', window.location.pathname + window.location.search + hash); } catch(_) {}
+        try { localStorage.setItem(LS_KEY, qs || ''); } catch(_) {}
+    }
+
+    function loadSavedState() {
+        let qs = '';
+        const hash = window.location.hash;
+        if (hash.startsWith('#eaf?')) {
+            qs = hash.slice(5);
+        } else {
+            try { qs = localStorage.getItem(LS_KEY) || ''; } catch(_) {}
+        }
+        if (!qs) return null;
+
+        const params = new URLSearchParams(qs);
+        const state  = {};
+
+        // Scalars
+        ['q', 'at', 'fac', 'corp', 'region', 'sort', 'nearest', 'view', 'scope', 'l4scope'].forEach(function(k) {
+            if (params.has(k)) state[k] = params.get(k);
+        });
+        ['jumps', 'minA', 'minL4', 'fac', 'corp'].forEach(function(k) {
+            if (params.has(k)) state[k] = parseInt(params.get(k), 10) || undefined;
+        });
+
+        // Booleans
+        if (params.get('sl')  === '1') state.sl  = true;
+        if (params.get('loc') === '1') state.loc = true;
+
+        // Arrays
+        if (params.has('sec')) state.sec = params.get('sec').split(',');
+        if (params.has('lv'))  state.lv  = params.get('lv').split(',').map(Number);
+        if (params.has('mt'))  state.mt  = params.get('mt').split(',');
+
+        return Object.keys(state).length ? state : null;
+    }
+
+    // ── Nearest-to AJAX ───────────────────────────────────────────────────────
+
+    function fetchNearestDistances(systemName) {
+        nearestDistances  = null;
+        nearestOriginName = '';
+        $('#eaf-nearest-status').text('Calculating…').removeClass('eaf-nearest-error eaf-nearest-ok');
+        ajaxPost({ action: 'eaf_nearest', system_name: systemName })
+            .then(function(resp) {
+                nearestDistances  = resp.data.distances;
+                nearestOriginName = systemName;
+                $('#eaf-nearest-status').text('✓ ' + systemName).addClass('eaf-nearest-ok').removeClass('eaf-nearest-error');
+                render();
+            })
+            .catch(function() {
+                nearestDistances  = null;
+                nearestOriginName = '';
+                $('#eaf-nearest-status').text('System not found').addClass('eaf-nearest-error').removeClass('eaf-nearest-ok');
+            });
+    }
+
     // ── Reset ─────────────────────────────────────────────────────────────────
 
     function resetFilters() {
@@ -881,16 +1274,32 @@ jQuery(function ($) {
         $('#eaf-division option').prop('selected', false);
         $('#eaf-agent-type').val('');
         $('#eaf-faction, #eaf-corporation').val('');
+        $('#eaf-region').val('');
         $('#eaf-min-jumps-range').val(0);
         $('#eaf-min-jumps-val').text('0');
         $('#eaf-min-agents').val(1);
         $('#eaf-min-agents-display').text(1);
+        $('#eaf-min-l4-agents').val(0);
+        $('#eaf-min-l4-display').text(0);
+        $('#eaf-min-l4-scope').data('scope', 'system');
+        $('#eaf-min-l4-scope .eaf-scope-pill').removeClass('eaf-scope-pill-active');
+        $('#eaf-min-l4-scope .eaf-scope-pill[data-val="system"]').addClass('eaf-scope-pill-active');
         $('#eaf-min-agents-scope').data('scope', 'system');
         $('#eaf-min-agents-scope .eaf-scope-pill').removeClass('eaf-scope-pill-active');
         $('#eaf-min-agents-scope .eaf-scope-pill[data-val="system"]').addClass('eaf-scope-pill-active');
         $('#eaf-storyline-only').prop('checked', false);
+        $('#eaf-locator-only').prop('checked', false);
+        $('#eaf-sort-by').val('agents_desc');
+        sortBy = 'agents_desc';
+        nearestDistances  = null;
+        nearestOriginName = '';
+        $('#eaf-nearest-row').hide();
+        $('#eaf-nearest-system').val('');
+        $('#eaf-nearest-status').text('').removeClass('eaf-nearest-error eaf-nearest-ok');
         lastSearch = '';
         populateCorpSelect('');
+        try { localStorage.removeItem(LS_KEY); } catch(_) {}
+        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(_) {}
         // Reload from server in case sec_class changed (e.g. was lowsec, now highsec)
         reloadAgents();
     }
@@ -921,6 +1330,30 @@ jQuery(function ($) {
         return String(s == null ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
             .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Converts raw readme.txt changelog text into styled HTML
+    function renderChangelog(text) {
+        if (!text) return '<p>No changelog available.</p>';
+        let html = '';
+        let inList = false;
+        text.split('\n').forEach(function(line) {
+            line = line.trimEnd();
+            if (/^= .+ =$/.test(line)) {
+                // Version heading: = 1.0.9 =
+                if (inList) { html += '</ul>'; inList = false; }
+                const ver = line.replace(/^= | =$/g, '');
+                html += '<h4 class="eaf-cl-version">' + esc(ver) + '</h4><ul class="eaf-cl-list">';
+                inList = true;
+            } else if (/^\* /.test(line)) {
+                html += '<li>' + esc(line.slice(2)) + '</li>';
+            } else if (line.trim() && inList) {
+                // Plain text line inside a version block (e.g. "Initial Public Release")
+                html += '<li>' + esc(line.trim()) + '</li>';
+            }
+        });
+        if (inList) html += '</ul>';
+        return html || '<p>No changelog entries found.</p>';
     }
 
     function debounce(fn, ms) {
