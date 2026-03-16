@@ -47,6 +47,53 @@ class EAF_SSO {
 		// AJAX: log out (clear cookie + transient).
 		add_action( 'wp_ajax_eaf_sso_logout',        [ __CLASS__, 'ajax_logout' ] );
 		add_action( 'wp_ajax_nopriv_eaf_sso_logout', [ __CLASS__, 'ajax_logout' ] );
+
+		// GDPR plugin integrations — register eaf_char_token so it appears in
+		// cookie declarations without requiring a manual entry or a scanner run.
+		add_filter( 'cookieyes_cookie_list', [ __CLASS__, 'register_cookieyes'  ] );
+		add_filter( 'complianz_cookie_list', [ __CLASS__, 'register_complianz'  ] );
+	}
+
+	// ── GDPR cookie registration ──────────────────────────────────────────────
+
+	/**
+	 * Registers the eaf_char_token cookie with CookieYes.
+	 *
+	 * CookieYes passes an array of cookies keyed by category slug.
+	 * Each entry is an array with keys: name, description, duration (in days).
+	 *
+	 * @param array $cookies Existing cookie list from CookieYes.
+	 * @return array
+	 */
+	public static function register_cookieyes( array $cookies ): array {
+		$cookies['necessary'][] = [
+			'name'        => self::COOKIE_NAME,
+			'description' => 'Set when a visitor authenticates via EVE Online SSO on the EVE Agent Finder. Stores a random session token (no personal data) that links the browser to an authenticated EVE character for the duration of the session. Only set when the user explicitly clicks the LOG IN with EVE Online button.',
+			'duration'    => '1 day',
+		];
+		return $cookies;
+	}
+
+	/**
+	 * Registers the eaf_char_token cookie with Complianz (GDPR/CCPA).
+	 *
+	 * Complianz passes an array of cookies. Each entry uses:
+	 *   name, category ('functional' | 'statistics' | 'marketing' | 'preferences'),
+	 *   expires (human-readable string), service, service_url.
+	 *
+	 * @param array $cookies Existing cookie list from Complianz.
+	 * @return array
+	 */
+	public static function register_complianz( array $cookies ): array {
+		$cookies[] = [
+			'name'        => self::COOKIE_NAME,
+			'category'    => 'functional',
+			'expires'     => '1 day',
+			'service'     => 'EVE Agent Finder',
+			'service_url' => 'https://developers.eveonline.com/',
+			'description' => 'Set when a visitor authenticates via EVE Online SSO on the EVE Agent Finder. Stores a random session token (no personal data) that links the browser to an authenticated EVE character. Only set when the user explicitly clicks the LOG IN with EVE Online button.',
+		];
+		return $cookies;
 	}
 
 	// ── Credential helpers ────────────────────────────────────────────────────
