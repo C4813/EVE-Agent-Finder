@@ -654,3 +654,99 @@
     font-size: 1rem; color: #a8c0d8;
     margin-bottom: .3rem; line-height: 1.55;
 }
+
+/* ── SSO zone (toolbar) ───────────────────────────────────────────── */
+.eaf-sso-zone {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    flex-wrap: wrap;
+}
+
+/* EVE SSO login button — uses CCP's official button image */
+.eaf-sso-login-btn {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.eaf-sso-login-btn img {
+    height: 30px;
+    width: auto;
+    display: block;
+    border-radius: 3px;
+}
+.eaf-sso-login-btn:hover img { opacity: .88; }
+.eaf-sso-text-btn {
+    display: inline-block;
+    background: #1a3a5a;
+    color: #a8d4ff;
+    border: 1px solid #2a5a8a;
+    border-radius: 4px;
+    padding: .25rem .75rem;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.eaf-sso-text-btn:hover { background: #1e4870; }
+
+/* "Authenticated as X" label */
+.eaf-sso-authed-label {
+    font-size: 1rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+.eaf-sso-authed-label strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* "Change Character" and "Log out" — same colour as the label, always underlined */
+.eaf-sso-change-btn,
+.eaf-sso-logout-link {
+    font-size: 1rem;
+    color: var(--text-dim) !important;
+    text-decoration: underline;
+    white-space: nowrap;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: inherit;
+}
+.eaf-sso-change-btn:hover { color: var(--text) !important; }
+.eaf-sso-logout-link:hover { color: #cc9090 !important; }
+
+/* ── Standings filter row (Advanced options) ──────────────────────── */
+.eaf-standings-row { align-items: center; gap: .6rem; }
+
+.eaf-standings-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: #0e2a45;
+    border: 1px solid #1e4a6a;
+    border-radius: 20px;
+    padding: .2rem .7rem;
+    font-size: .82rem;
+    color: #a8d4ff;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+}
+.eaf-standings-pill:hover { background: #112f50; border-color: #2a6a9a; }
+.eaf-standings-pill input[type=checkbox] { margin: 0; cursor: pointer; }
+.eaf-standings-label { user-select: none; }
+
+.eaf-standings-status {
+    font-size: .8rem;
+    color: #7090aa;
+}
+.eaf-standings-spinner {
+    display: inline-block;
+    animation: eaf-spin 1s linear infinite;
+}
+@keyframes eaf-spin { to { transform: rotate(360deg); } }
+.eaf-standings-warn { color: #cc9944; }
+.eaf-standings-warn a { color: #a8d4ff; }
