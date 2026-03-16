@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,15 @@ Features include:
 
 == Changelog ==
 
+= 1.2.0 =
+* Added EVE SSO authentication — a "LOG IN with EVE Online" button appears to the right of the EVE Agent Finder title in the toolbar when SSO is configured; clicking it authenticates via EVE Online's OAuth2 flow
+* When authenticated, the toolbar displays [Authenticated as Character Name] [Change Character] [Log out]
+* Added "Available to my character only" toggle in Advanced options — visible only when authenticated; filters out agents whose corporation or faction standing falls below the required threshold for their level (L1: no requirement, L2: 1.0, L3: 3.0, L4: 5.0, L5: 7.0); standings are fetched live from ESI and cached server-side for 30 minutes
+* When the standings filter is active and the Share button is used, standings data is embedded directly in the URL hash — recipients see the same filtered results without needing to log in
+* Added EVE SSO Settings section to the admin panel: step-by-step instructions for creating an EVE Online Developer Application, required scope (esi-characters.read_standings.v1), one-click copy of the callback URL, and secure credential storage; the Client Secret is never echoed back to the browser after saving
+* Reset filters button now appears even when filters produce zero results, and correctly clears the standings filter toggle
+* uninstall.php updated to remove all SSO data on deletion: eaf_sso_client_id, eaf_sso_client_secret options, and all eaf_* transients
+
 = 1.1.0 =
 * Added locator-only filter toggle in Advanced options, with live agent count hint
 * Added Min L4 agents stepper in Advanced options with per-system / per-station scope, aligning with the Min agents stepper
@@ -68,4 +77,4 @@ Features include:
 * Bug fix: selecting Highsec + Lowsec + Nullsec could return fewer results than Highsec + Lowsec alone due to a hardcoded 8000-agent query limit; limit removed as all filtering is client-side
 
 = 1.0.0 =
-Initial Public Release
+* Initial Public Release
