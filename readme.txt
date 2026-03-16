@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.0.1
+Stable tag: 1.1.0
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,9 +45,27 @@ Features include:
 
 == Changelog ==
 
+= 1.1.0 =
+* Added locator-only filter toggle in Advanced options, with live agent count hint
+* Added Min L4 agents stepper in Advanced options with per-system / per-station scope, aligning with the Min agents stepper
+* Added Region filter dropdown below Corporation
+* Added system name autocomplete dropdown to the Nearest to… field — suggestions appear after 2 characters and can be clicked to select
+* Added Share button — copies the current URL with all active filters encoded in the hash for bookmarking or sharing
+* Added Version info button — opens a modal displaying the full changelog
+* Added Collapse all button in the results bar — only appears when one or more hub cards are expanded
+* Filter state is now saved to localStorage and restored on next visit; URL hash takes priority; Reset filters clears both
+* Copy button moved to the left of agent names in hub view and table view
+* Copy button added to the left of station names in hub view
+* Locator tag now displayed in table view agent column
+* Added "Nearest to…" sort option — enter a system name to sort hubs by jump distance from that system; each hub card displays a clickable Dotlan route badge when active
+* Renamed sort option "Closest to Lowsec" to "Nearest to Lowsec"
+* Gold highlight bar now respects active level and mission type filters — it only appears when multiple agents matching the current filters share the same type and level
+* Gold highlight bar tooltip is now filter-aware, naming the specific type and level causing the highlight (e.g. "This system has multiple L4 Distribution agents")
+* Renamed "Hub options" to "Advanced options"
+* If updating from 1.0.1, re-run BFS in the admin settings
+
 = 1.0.1 =
 * Bug fix: selecting Highsec + Lowsec + Nullsec could return fewer results than Highsec + Lowsec alone due to a hardcoded 8000-agent query limit; limit removed as all filtering is client-side
 
 = 1.0.0 =
 Initial Public Release
-
