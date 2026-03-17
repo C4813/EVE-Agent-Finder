@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.2.4
+Stable tag: 1.2.5
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,10 @@ Features include:
 7. Add `[eve_agent_finder]` to any page or post (recommended on a full-width page without a sidebar)
 
 == Changelog ==
+
+= 1.2.5 =
+* EVE SSO: standings are now silently refreshed using the refresh token EVE issues automatically — users no longer need to re-authenticate after 19 minutes
+* EVE SSO: if the refresh token has expired (~90 days), the standings filter shows "Could not load standings — re-auth your character by clicking [Change Character] above"
 
 = 1.2.4 =
 * Lowsec and Nullsec are now selected by default alongside Highsec
