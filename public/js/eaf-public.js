@@ -1687,11 +1687,13 @@ jQuery(function ($) {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    // EVE Online displays security rounded up to the nearest 0.1 for positive values,
-    // so a system with true_sec=0.049 shows as 0.1 (lowsec), not 0.0 (nullsec).
+    // EVE Online displays security as the true value floored to 1 decimal place,
+    // with a minimum of 0.1 for any system with a positive security status.
+    // e.g. Nonni (~0.536) → 0.5, Hophib (~0.049) → 0.0 floored, bumped to 0.1.
     function eveSecRound(sec) {
         if (sec <= 0) return 0;
-        return Math.ceil(sec * 10) / 10;
+        const floored = Math.floor(sec * 10) / 10;
+        return floored < 0.1 ? 0.1 : floored;
     }
 
     function fmtSecurity(sec, secClass) {
