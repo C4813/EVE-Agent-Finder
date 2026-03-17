@@ -38,6 +38,8 @@
 
 .eaf-notice { padding: .75rem 1.25rem; border-radius: 5px; margin: .5rem 0; }
 .eaf-notice-warn { background: #1a1000; border: 1px solid #705010; color: #d09040; }
+.eaf-notice-warn a { color: #e0b060; text-decoration: underline; }
+.eaf-stale-notice { border-radius: 0; margin: 0; border-left: none; border-right: none; border-top: none; font-size: .95rem; }
 
 /* ── Loader ──────────────────────────────────────────────────────── */
 .eaf-loader {
@@ -378,6 +380,35 @@
     padding: 1px 7px; border-radius: 10px; font-weight: 600;
 }
 
+/* ── Constellation view ──────────────────────────────────────────── */
+.eaf-const-list { display: flex; flex-direction: column; gap: .4rem; }
+
+.eaf-const-card {
+    background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 7px; overflow: hidden; transition: border-color .15s;
+}
+.eaf-const-card.eaf-const-expanded { border-color: var(--border-hi); }
+
+.eaf-const-header {
+    padding: .55rem .85rem; cursor: pointer; user-select: none;
+}
+.eaf-const-header:hover { background: #131f2e; }
+
+.eaf-const-row1 {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: .45rem;
+}
+.eaf-const-arrow { font-size: .85rem; color: var(--text-faint); min-width: 1rem; flex-shrink: 0; }
+.eaf-const-name  { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
+.eaf-const-name-link:hover .eaf-const-name { text-decoration: underline; }
+
+.eaf-const-body {
+    border-top: 1px solid var(--border);
+    padding: .5rem .5rem .5rem;
+}
+/* Inside constellation body, hub cards sit flush — slightly tighter */
+.eaf-const-body .eaf-hub-list { gap: .35rem; }
+.eaf-const-body .eaf-hub-card { border-radius: 5px; }
+
 /* ── Tables ──────────────────────────────────────────────────────── */
 .eaf-table {
     width: 100%; border-collapse: collapse;
@@ -445,6 +476,9 @@
 /* Flat table: agent row + specific cell classes */
 .eaf-agent-row td { background: var(--bg0); color: var(--text); }
 .eaf-td-station   { color: #7090aa; font-size: .9rem; }
+.eaf-table-sysname { font-size: .88rem; font-weight: 700; }
+.eaf-table-syslink:hover .eaf-table-sysname { text-decoration: underline; }
+.eaf-badge-dist-sm { font-size: .82rem; padding: 1px 6px; }
 
 /* Distance column colours in the flat table (no border/bg — text only) */
 .eaf-dist-very-safe { color: var(--green); }
