@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.2.5
+Stable tag: 1.2.6
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,14 @@ Features include:
 7. Add `[eve_agent_finder]` to any page or post (recommended on a full-width page without a sidebar)
 
 == Changelog ==
+
+= 1.2.6 =
+* Added Constellation view — a third view mode (alongside Hubs and Table) that groups systems by constellation; each constellation card shows name, region, system count, agent count, and L4 count, and expands to reveal the full hub cards for each system inside it
+* Table view: system name is now a clickable Dotlan link with security-status colour, matching hub view behaviour
+* Table view: Jumps→LS column now shows a colour-coded badge linking to a Dotlan route to the nearest lowsec entry point, matching hub view behaviour
+* Table view: added copy buttons to the left of station name and system name columns
+* Hub view: added Compact view toggle in Advanced options — hides the second row of each system card (mission type/level breakdown and factions) for a denser list
+* Frontend: added a data freshness warning banner when SDE data is more than 90 days old, with a direct link to the admin import panel
 
 = 1.2.5 =
 * EVE SSO: standings are now silently refreshed using the refresh token EVE issues automatically — users no longer need to re-authenticate after 19 minutes
