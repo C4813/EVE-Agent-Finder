@@ -216,8 +216,8 @@ jQuery(function ($) {
     function getDefaultSecClass() {
         try {
             const cfg = JSON.parse($app.attr('data-config') || '{}');
-            return cfg.default_sec_class || ['highsec'];
-        } catch(_) { return ['highsec']; }
+            return cfg.default_sec_class || ['highsec', 'lowsec', 'nullsec'];
+        } catch(_) { return ['highsec', 'lowsec', 'nullsec']; }
     }
 
     function getDefaultMinJumps() {
@@ -1090,7 +1090,7 @@ jQuery(function ($) {
         const sysLabel = '<span class="eaf-hub-sysname ' + secColor + '">' + esc(sys.system_name) + '</span>';
         h += '  <button class="eaf-copy-btn" data-copy="' + esc(sys.system_name) + '" title="Copy system name">⧉</button>';
         h += '  <a class="eaf-dotlan-link eaf-sysname-link" href="' + dotlanUrl + '" target="_blank" rel="noopener">' + sysLabel + '</a>';
-        h += '  <span class="eaf-sec ' + secColor + '">' + sys.security.toFixed(1) + '</span>';
+        h += '  <span class="eaf-sec ' + secColor + '">' + fmtSecurity(sys.security, sys.sec_class) + '</span>';
 
         // Constellation and region breadcrumb
         if (dotlanConst || dotlanRegion) {
@@ -1206,17 +1206,16 @@ jQuery(function ($) {
         });
 
         const cols = [
-            { key: 'agent_name',       label: 'Agent'        },
-            { key: 'level',            label: 'Lvl'          },
-            { key: 'division_name',    label: 'Division'     },
-            { key: 'agent_type_name',  label: 'Type'         },
-            { key: 'corporation_name', label: 'Corporation'  },
-            { key: 'faction_name',     label: 'Faction'      },
-            { key: 'station_name',     label: 'Station'      },
-            { key: 'system_name',      label: 'System'       },
-            { key: 'security',         label: 'Sec'          },
-            { key: 'sec_class',        label: 'Class'        },
-            { key: 'lowsec_distance',  label: 'Jumps→LS'     },
+            { key: 'agent_name',       label: 'Agent',       cls: 'col-agent'    },
+            { key: 'level',            label: 'Lvl',         cls: 'col-lvl'      },
+            { key: 'division_name',    label: 'Division',    cls: 'col-division' },
+            { key: 'agent_type_name',  label: 'Type',        cls: 'col-type'     },
+            { key: 'corporation_name', label: 'Corporation', cls: 'col-corp'     },
+            { key: 'faction_name',     label: 'Faction',     cls: 'col-faction'  },
+            { key: 'station_name',     label: 'Station',     cls: 'col-station'  },
+            { key: 'system_name',      label: 'System',      cls: 'col-system'   },
+            { key: 'security',         label: 'Sec',         cls: 'col-sec'      },
+            { key: 'lowsec_distance',  label: 'Jumps→LS',    cls: 'col-jumps'    },
         ];
 
         const tCount = tableData.length;
@@ -1225,6 +1224,9 @@ jQuery(function ($) {
             + '<button class="eaf-btn eaf-btn-reset eaf-btn-sm" id="eaf-reset-filters">↺ Reset filters</button>'
             + '</div>';
         h += '<div class="eaf-table-wrap"><table class="eaf-table eaf-table-flat">';
+        h += '<colgroup>';
+        cols.forEach(function(c) { h += '<col class="' + c.cls + '">'; });
+        h += '</colgroup>';
         h += '<thead><tr>';
         cols.forEach(function(c) {
             const isSort  = c.key === tableSortCol;
@@ -1241,22 +1243,21 @@ jQuery(function ($) {
             const distTxt    = dist >= 0 ? String(dist) : '—';
             const distClass  = dist < 0 ? 'eaf-dist-na' : dist >= 10 ? 'eaf-dist-very-safe' : dist >= 7 ? 'eaf-dist-safe' : dist >= 4 ? 'eaf-dist-medium' : 'eaf-dist-close';
             h += '<tr class="eaf-agent-row">';
-            h += '<td><button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(a.agent_name) + '" title="Copy agent name">⧉</button> ' + esc(a.agent_name) + (a.is_locator ? ' <span class="eaf-locator-tag">locator</span>' : '') + '</td>';
+            h += '<td class="eaf-td-agent" title="' + esc(a.agent_name) + '"><button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(a.agent_name) + '" title="Copy agent name">⧉</button> ' + esc(a.agent_name) + (a.is_locator ? ' <span class="eaf-locator-tag">locator</span>' : '') + '</td>';
             h += '<td><span class="eaf-lbadge eaf-level-' + a.level + '">L' + a.level + '</span></td>';
             h += '<td>' + esc(getMissionType(a.division_id, a.agent_type_name, a.division_name) || a.division_name) + '</td>';
             h += '<td><span class="eaf-type-pill">' + esc(fmtAgentType(a.agent_type_name)) + '</span></td>';
-            h += '<td>' + esc(a.corporation_name) + '</td>';
-            h += '<td>' + esc(a.faction_name) + '</td>';
-            h += '<td class="eaf-td-station">' + esc(a.station_name) + '</td>';
+            h += '<td class="eaf-td-corp" title="' + esc(a.corporation_name) + '">' + esc(a.corporation_name) + '</td>';
+            h += '<td class="eaf-td-faction" title="' + esc(a.faction_name) + '">' + esc(a.faction_name) + '</td>';
+            h += '<td class="eaf-td-station" title="' + esc(a.station_name) + '">' + esc(a.station_name) + '</td>';
             h += '<td>' + esc(a.system_name) + '</td>';
-            h += '<td><span class="eaf-sec ' + secCssClass(a.security, a.sec_class) + '">' + a.security.toFixed(1) + '</span></td>';
-            h += '<td><span class="eaf-secclass-' + a.sec_class + '">' + a.sec_class + '</span></td>';
+            h += '<td><span class="eaf-sec ' + secCssClass(a.security, a.sec_class) + '">' + fmtSecurity(a.security, a.sec_class) + '</span></td>';
             h += '<td class="' + distClass + '">' + distTxt + '</td>';
             h += '</tr>';
         });
 
         if (sorted.length > 2000) {
-            h += '<tr><td colspan="11" class="eaf-truncate-notice">Showing 2 000 of ' + sorted.length.toLocaleString() + '. Add filters to narrow.</td></tr>';
+            h += '<tr><td colspan="10" class="eaf-truncate-notice">Showing 2 000 of ' + sorted.length.toLocaleString() + '. Add filters to narrow.</td></tr>';
         }
 
         h += '</tbody></table></div>';
@@ -1472,8 +1473,8 @@ jQuery(function ($) {
 
     function resetFilters() {
         $('#eaf-search').val('');
-        $('#eaf-sec-class input[value=highsec]').prop('checked', true);
-        $('#eaf-sec-class input:not([value=highsec])').prop('checked', false);
+        $('#eaf-sec-class input').prop('checked', true);
+        $('.eaf-highsec-only').removeClass('eaf-filter-disabled');
         $('#eaf-level-filter input').prop('checked', false);
         $('#eaf-mission-type input').prop('checked', false);
         $('#eaf-division option').prop('selected', false);
@@ -1513,9 +1514,21 @@ jQuery(function ($) {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    // EVE Online displays security rounded up to the nearest 0.1 for positive values,
+    // so a system with true_sec=0.049 shows as 0.1 (lowsec), not 0.0 (nullsec).
+    function eveSecRound(sec) {
+        if (sec <= 0) return 0;
+        return Math.ceil(sec * 10) / 10;
+    }
+
+    function fmtSecurity(sec, secClass) {
+        if (secClass === 'wormhole') return '—';
+        return eveSecRound(sec).toFixed(1);
+    }
+
     function secCssClass(sec, secClass) {
         if (secClass === 'wormhole') return 'sec-wh';
-        const r = Math.round(sec * 10) / 10;
+        const r = eveSecRound(sec);
         if (r >= 1.0) return 'sec-10';
         if (r >= 0.9) return 'sec-09';
         if (r >= 0.8) return 'sec-08';
