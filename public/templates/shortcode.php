@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 	<div class="eaf-modal" id="eaf-version-modal" style="display:none">
 		<div class="eaf-modal-box eaf-modal-box-wide">
 			<button class="eaf-modal-close" id="eaf-version-close" aria-label="Close">✕</button>
-			<h3 class="eaf-modal-title">Version info</h3>
+			<h3 class="eaf-modal-title" style="display:flex;align-items:center;gap:.75rem;">Version info <a href="https://github.com/C4813/EVE-Agent-Finder" target="_blank" rel="noopener" style="margin-left:auto;font-size:.95rem;font-weight:500;color:#7ac4ff;text-decoration:none;border:1px solid #2a5080;border-radius:4px;padding:2px 12px;white-space:nowrap;">⎋ GitHub</a></h3>
 			<div id="eaf-version-content" class="eaf-changelog">
 				<div class="eaf-changelog-loading">Loading changelog…</div>
 			</div>
@@ -159,13 +159,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 					</div>
 					<div class="eaf-sec-card eaf-sec-card-lowsec">
 						<label class="eaf-sec-card-label">
-							<input type="checkbox" name="sec_class" value="lowsec">
+							<input type="checkbox" name="sec_class" value="lowsec" checked>
 							<span class="eaf-sec-name sec-lo">Lowsec</span>
 						</label>
 					</div>
 					<div class="eaf-sec-card eaf-sec-card-nullsec">
 						<label class="eaf-sec-card-label">
-							<input type="checkbox" name="sec_class" value="nullsec">
+							<input type="checkbox" name="sec_class" value="nullsec" checked>
 							<span class="eaf-sec-name sec-null">Nullsec</span>
 						</label>
 					</div>
