@@ -62,7 +62,7 @@ class EAF_Public {
 		}
 
 		$atts = shortcode_atts( [
-			'sec_class' => 'highsec',
+			'sec_class' => 'highsec,lowsec,nullsec',
 			'min_jumps' => '0',
 		], $atts, 'eve_agent_finder' );
 
