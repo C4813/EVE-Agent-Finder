@@ -8,8 +8,12 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 
 ## Features
 
-### Frontend
+### Views
 - **Hub view** — systems grouped by hub, showing station count, agent count, security status, constellation/region breadcrumb, storyline proximity, and jumps from Lowsec
+- **Constellation view** — systems grouped by constellation; each constellation card shows name, region, system count, agent count, and L4 count, and expands to reveal the full hub cards for every system inside it
+- **Table view** — flat sortable agent list with clickable Dotlan system links, colour-coded distance badges, and copy buttons on agent, station, and system name columns
+
+### Hub & Constellation cards
 - **Security colours** matching the in-game Photon UI palette
 - **Clickable Dotlan links** on system names, constellations, regions, Lowsec distance badges, and storyline distance badges
 - **Expand any hub card** to see individual stations and agents with level, division, type, corporation, and faction
@@ -17,11 +21,11 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 - **Hub score** — composite ranking based on agent count, L4 density, corporation diversity, station count, and safety
 - **Gold highlight border** on hubs with multiple agents of the same mission type and level — respects active filters, with a tooltip naming the specific type and level (e.g. _This system has multiple L4 Security agents_)
 - **Copy buttons** (`⧉`) on system names, station names, and agent names for quick in-game pasting
-- **Table view** — flat sortable agent list as an alternative to hub view
+- **Compact view** toggle — hides the mission type/level breakdown row on hub cards for a denser list
 - **Locator agent tag** shown on agents in both hub and table view
 
 ### Filters
-- Security class (Highsec / Lowsec / Nullsec)
+- Security class (Highsec / Lowsec / Nullsec) — all three selected by default
 - Agent level (L1–L5)
 - Mission type (Distribution, Security, Mining, R&D)
 - Agent type (Basic, Storyline, COSMOS, Epic Arc, R&D, Career, Faction Warfare, etc.)
@@ -34,6 +38,7 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 - **Min L4 agents** stepper with its own per-system / per-station scope
 - **Storyline in system** toggle with live count
 - **Locator agents only** toggle with live count
+- **Compact view** toggle — removes the composition row from hub cards for a denser display
 - **Available to my character only** — visible when logged in via EVE SSO; hides agents your character cannot access based on current standings (see [EVE SSO](#eve-sso) below)
 
 ### Sort options
@@ -51,6 +56,7 @@ Import the full SDE zip, run the BFS jump-distance calculation, then drop `[eve_
 - **Per-table drop buttons** — clear and re-import any individual table independently
 - **BFS engine** — multi-source breadth-first search calculates Lowsec distance, nearest storyline agent system, and on-demand single-source BFS for the Nearest to… sort feature, for every system in New Eden (~8,500 systems)
 - Import status cards show row counts and timestamps for each data table
+- **Data freshness warning** — a notice is shown on the frontend when SDE data is more than 90 days old, with a direct link to the admin import panel
 - Unnamed agents notice if any agents lack names after import
 - **EVE SSO Settings** — configure a developer application Client ID and Secret Key to enable front-end character authentication (see [EVE SSO](#eve-sso) below)
 
@@ -74,7 +80,9 @@ The **Available to my character only** toggle then becomes available in Advanced
 | L4 | 5.0 |
 | L5 | 7.0 |
 
-Standings are fetched live from ESI and cached server-side for 30 minutes. The session cookie persists for 24 hours; logging out clears it immediately without a page refresh.
+Standings are fetched live from ESI when the toggle is enabled, and cached server-side for 30 minutes. When the cache expires, standings are silently refreshed in the background using the EVE-issued refresh token — no re-authentication required in normal use. If the refresh token itself has expired (~90 days of inactivity), the filter prompts you to re-auth via **[Change Character]**.
+
+The session cookie persists for 24 hours; logging out clears it immediately without a page refresh.
 
 ### Setting up EVE SSO
 
@@ -116,6 +124,7 @@ The Secret Key is stored securely and never displayed again after saving.
 ---
 
 ## Shortcode
+
 ```
 [eve_agent_finder]
 ```
@@ -128,6 +137,7 @@ Optional attributes:
 | `min_jumps` | `0` | Default minimum jumps from Lowsec |
 
 Example:
+
 ```
 [eve_agent_finder sec_class="highsec" min_jumps="5"]
 ```
