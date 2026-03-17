@@ -324,8 +324,8 @@ jQuery(function ($) {
             currentView = $(this).data('view');
             $('.eaf-view-btn').removeClass('active');
             $(this).addClass('active');
-            // Hub-specific options only make sense in hub view
-            $('#eaf-hub-options').toggle(currentView === 'station');
+            // Hub-specific options make sense in hub + constellation views
+            $('#eaf-hub-options').toggle(currentView === 'station' || currentView === 'constellation');
             render();
         });
 
@@ -365,7 +365,7 @@ jQuery(function ($) {
         // Realtime filters — non-search controls (instant render)
         $app.on('change', '#eaf-level-filter input, '
             + '#eaf-mission-type input, #eaf-division, #eaf-agent-type, #eaf-faction, #eaf-corporation, '
-            + '#eaf-region, #eaf-storyline-only, #eaf-locator-only', debounce(render, 180));
+            + '#eaf-region, #eaf-storyline-only, #eaf-locator-only, #eaf-compact-view', debounce(render, 180));
 
         // Faction → filter corp list (region is independent — no cascade needed)
         $('#eaf-faction').on('change', function() {
@@ -784,6 +784,8 @@ jQuery(function ($) {
         saveState();
         if (currentView === 'station') {
             renderHubView(filtered);
+        } else if (currentView === 'constellation') {
+            renderConstellationView(filtered);
         } else {
             renderTableView(filtered);
         }
@@ -1127,10 +1129,12 @@ jQuery(function ($) {
         h += '</div>';
 
         // ── Line 2: composition + factions ────────────────────────────────
-        h += '<div class="eaf-hub-row2">';
-        h += typeClusters;
-        h += '<span class="eaf-hub-factions">' + esc(facNames) + '</span>';
-        h += '</div>';
+        if (!$('#eaf-compact-view').is(':checked')) {
+            h += '<div class="eaf-hub-row2">';
+            h += typeClusters;
+            h += '<span class="eaf-hub-factions">' + esc(facNames) + '</span>';
+            h += '</div>';
+        }
 
         h += '</div>'; // eaf-hub-header
 
@@ -1169,6 +1173,174 @@ jQuery(function ($) {
         h += '</div>'; // hub-body
         h += '</div>'; // hub-card
         return h;
+    }
+
+
+    // ────────────────────────────────────────────────────────────────────────
+    // CONSTELLATION VIEW  –  systems grouped by constellation
+    // ────────────────────────────────────────────────────────────────────────
+
+    function renderConstellationView(filtered) {
+        const minAgents  = parseInt($('#eaf-min-agents').val(), 10) || 1;
+        const minL4      = parseInt($('#eaf-min-l4-agents').val(), 10) || 0;
+        const minScope   = $('#eaf-min-agents-scope').data('scope') || 'system';
+        const minL4Scope = $('#eaf-min-l4-scope').data('scope') || 'system';
+        const storylineOnly = $('#eaf-storyline-only').is(':checked');
+
+        // ── Build system map (same as hub view) ───────────────────────────
+        const systemMap = {};
+        filtered.forEach(function(a) {
+            const sid = a.system_id;
+            if (!systemMap[sid]) {
+                systemMap[sid] = {
+                    system_id:           a.system_id,
+                    system_name:         a.system_name,
+                    security:            a.security,
+                    sec_class:           a.sec_class,
+                    lowsec_distance:     a.lowsec_distance,
+                    storyline_distance:  a.storyline_distance,
+                    storyline_lowsec:    a.storyline_lowsec,
+                    constellation_name:  a.constellation_name || '',
+                    constellation_id:    a.constellation_id   || '',
+                    region_name:         a.region_name        || '',
+                    stations:            {},
+                    agents:              [],
+                    factions:            new Set(),
+                };
+            }
+            const sys = systemMap[sid];
+            sys.agents.push(a);
+            sys.factions.add(a.faction_id);
+            const stid = a.station_id;
+            if (!sys.stations[stid]) {
+                sys.stations[stid] = { station_id: a.station_id, station_name: a.station_name, agents: [] };
+            }
+            sys.stations[stid].agents.push(a);
+        });
+
+        let systems = Object.values(systemMap);
+
+        // ── Apply hub-view filters ─────────────────────────────────────────
+        systems = systems.filter(function(sys) {
+            if (minScope === 'station') {
+                return Object.values(sys.stations).some(function(sta) { return sta.agents.length >= minAgents; });
+            }
+            return sys.agents.length >= minAgents;
+        });
+        if (storylineOnly) {
+            systems = systems.filter(function(sys) { return sys.storyline_distance === 0; });
+        }
+        if (minL4 > 0) {
+            systems = systems.filter(function(sys) {
+                if (minL4Scope === 'station') {
+                    return Object.values(sys.stations).some(function(sta) {
+                        return sta.agents.filter(function(a) { return a.level === 4; }).length >= minL4;
+                    });
+                }
+                return sys.agents.filter(function(a) { return a.level === 4; }).length >= minL4;
+            });
+        }
+
+        // ── Score systems ─────────────────────────────────────────────────
+        systems.forEach(function(sys) { sys.hub_score = computeSystemHubScore(sys); });
+        systems = sortSystems(systems);
+
+        // ── Group into constellations ─────────────────────────────────────
+        const constMap = {};
+        systems.forEach(function(sys) {
+            const key = sys.constellation_name || '(Unknown Constellation)';
+            if (!constMap[key]) {
+                constMap[key] = {
+                    constellation_name: key,
+                    region_name:        sys.region_name,
+                    systems:            [],
+                    agents:             [],
+                };
+            }
+            constMap[key].systems.push(sys);
+            constMap[key].agents = constMap[key].agents.concat(sys.agents);
+        });
+
+        let constellations = Object.values(constMap);
+
+        // Sort constellations: by total agents desc, then name asc
+        constellations.sort(function(a, b) {
+            if (b.agents.length !== a.agents.length) return b.agents.length - a.agents.length;
+            return a.constellation_name.localeCompare(b.constellation_name);
+        });
+
+        const totalSystems = systems.length;
+        const totalAgents  = filtered.length;
+
+        if (constellations.length === 0) {
+            $results.html(
+                '<div class="eaf-hub-count"><span>No systems match your filters</span>'
+                + '<button class="eaf-btn eaf-btn-reset eaf-btn-sm" id="eaf-reset-filters">↺ Reset filters</button></div>'
+                + '<div class="eaf-empty">Try relaxing the filters.</div>'
+            );
+            return;
+        }
+
+        let html = '<div class="eaf-hub-count">'
+            + '<span>Showing ' + totalAgents.toLocaleString() + ' agent' + (totalAgents !== 1 ? 's' : '')
+            + ' in ' + totalSystems.toLocaleString() + ' system' + (totalSystems !== 1 ? 's' : '')
+            + ' across ' + constellations.length.toLocaleString() + ' constellation' + (constellations.length !== 1 ? 's' : '') + '</span>'
+            + '<button class="eaf-btn eaf-btn-reset eaf-btn-sm" id="eaf-reset-filters">↺ Reset filters</button>'
+            + '</div>';
+
+        html += '<div class="eaf-const-list">';
+        constellations.forEach(function(con) {
+            const dotlanRegion = con.region_name.replace(/ /g, '_');
+            const dotlanConst  = con.constellation_name.replace(/ /g, '_');
+            const constUrl     = dotlanRegion
+                ? 'https://evemaps.dotlan.net/map/' + dotlanRegion + '/' + encodeURIComponent(dotlanConst)
+                : 'https://evemaps.dotlan.net/search/' + encodeURIComponent(con.constellation_name);
+            const regUrl       = dotlanRegion
+                ? 'https://evemaps.dotlan.net/map/' + dotlanRegion
+                : '';
+            const l4Count      = con.agents.filter(function(a) { return a.level === 4; }).length;
+
+            html += '<div class="eaf-const-card">';
+            html += '<div class="eaf-const-header">';
+            html += '<div class="eaf-const-row1">';
+            html += '<span class="eaf-const-arrow">▶</span>';
+            html += '<a class="eaf-dotlan-link eaf-const-name-link" href="' + constUrl + '" target="_blank" rel="noopener">'
+                  + '<span class="eaf-const-name">' + esc(con.constellation_name) + '</span></a>';
+            if (con.region_name) {
+                const regLink = regUrl
+                    ? '<a class="eaf-dotlan-link eaf-breadcrumb-link" href="' + regUrl + '" target="_blank" rel="noopener">' + esc(con.region_name) + '</a>'
+                    : esc(con.region_name);
+                html += '<span class="eaf-hub-breadcrumb">&lsaquo; ' + regLink + '</span>';
+            }
+            html += '<span class="eaf-hub-subinfo"> · '
+                  + con.systems.length + ' system' + (con.systems.length !== 1 ? 's' : '')
+                  + ' · ' + con.agents.length + ' agent' + (con.agents.length !== 1 ? 's' : '');
+            if (l4Count > 0) html += ' · <span class="eaf-lbadge eaf-level-4">L4×' + l4Count + '</span>';
+            html += '</span>';
+            html += '<span class="eaf-score" style="margin-left:auto">Score '
+                  + con.systems.reduce(function(s, sys) { return s + sys.hub_score; }, 0).toFixed(1) + '</span>';
+            html += '</div>'; // const-row1
+            html += '</div>'; // const-header
+
+            html += '<div class="eaf-const-body" style="display:none"><div class="eaf-hub-list">';
+            con.systems.forEach(function(sys, i) {
+                html += renderSystemCard(sys, i);
+            });
+            html += '</div></div>'; // const-body
+            html += '</div>'; // const-card
+        });
+        html += '</div>';
+
+        $results.html(html);
+
+        // Expand / collapse constellation cards
+        $results.off('click.const').on('click.const', '.eaf-const-header', function(e) {
+            if ($(e.target).closest('button, a, input, select').length) return;
+            const $card = $(this).closest('.eaf-const-card');
+            $card.toggleClass('eaf-const-expanded');
+            $card.find('.eaf-const-arrow').text($card.hasClass('eaf-const-expanded') ? '▼' : '▶');
+            $card.find('> .eaf-const-body').stop(true).slideToggle(200);
+        });
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -1242,10 +1414,13 @@ jQuery(function ($) {
             h += '<td><span class="eaf-type-pill">' + esc(fmtAgentType(a.agent_type_name)) + '</span></td>';
             h += '<td class="eaf-td-corp" title="' + esc(a.corporation_name) + '">' + esc(a.corporation_name) + '</td>';
             h += '<td class="eaf-td-faction" title="' + esc(a.faction_name) + '">' + esc(a.faction_name) + '</td>';
-            h += '<td class="eaf-td-station" title="' + esc(a.station_name) + '">' + esc(a.station_name) + '</td>';
-            h += '<td>' + esc(a.system_name) + '</td>';
+            h += '<td class="eaf-td-station" title="' + esc(a.station_name) + '"><button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(a.station_name) + '" title="Copy station name">⧉</button> ' + esc(a.station_name) + '</td>';
+            const dotlanSysUrl = 'https://evemaps.dotlan.net/system/' + encodeURIComponent(a.system_name.replace(/ /g,'_'));
+            const distBadge = dist >= 0 ? '<span class="eaf-badge eaf-badge-dist eaf-badge-dist-sm ' + distClass.replace('eaf-dist-','dist-') + '">' + distTxt + '</span>' : '<span class="eaf-dist-na">—</span>';
+            const distLinked = dist >= 0 && a.lowsec_gateway ? '<a class="eaf-dotlan-link" href="https://evemaps.dotlan.net/route/' + encodeURIComponent(a.system_name) + ':' + encodeURIComponent(a.lowsec_gateway) + '" target="_blank" rel="noopener">' + distBadge + '</a>' : distBadge;
+            h += '<td><button class="eaf-copy-btn eaf-copy-inline" data-copy="' + esc(a.system_name) + '" title="Copy system name">⧉</button> <a class="eaf-dotlan-link eaf-table-syslink" href="' + dotlanSysUrl + '" target="_blank" rel="noopener"><span class="eaf-hub-sysname eaf-table-sysname ' + secCssClass(a.security, a.sec_class) + '">' + esc(a.system_name) + '</span></a></td>';
             h += '<td><span class="eaf-sec ' + secCssClass(a.security, a.sec_class) + '">' + fmtSecurity(a.security, a.sec_class) + '</span></td>';
-            h += '<td class="' + distClass + '">' + distTxt + '</td>';
+            h += '<td>' + distLinked + '</td>';
             h += '</tr>';
         });
 
@@ -1277,6 +1452,7 @@ jQuery(function ($) {
             l4scope:    $('#eaf-min-l4-scope').data('scope') !== 'system' ? $('#eaf-min-l4-scope').data('scope') : undefined,
             sl:         $('#eaf-storyline-only').is(':checked') || undefined,
             loc:        $('#eaf-locator-only').is(':checked')   || undefined,
+            cmp:        $('#eaf-compact-view').is(':checked')    || undefined,
             std:        $('#eaf-standings-filter').is(':checked') || undefined,
             sort:       sortBy !== 'agents_desc' ? sortBy : undefined,
             nearest:    nearestOriginName || undefined,
@@ -1317,6 +1493,7 @@ jQuery(function ($) {
         }
         if (state.sl)     { $('#eaf-storyline-only').prop('checked', true); }
         if (state.loc)    { $('#eaf-locator-only').prop('checked', true); }
+        if (state.cmp)    { $('#eaf-compact-view').prop('checked', true); }
         if (state.std) {
             // Standings filter was active when this link was shared.
             $('#eaf-standings-row').show();
@@ -1351,7 +1528,7 @@ jQuery(function ($) {
             currentView = state.view;
             $('.eaf-view-btn').removeClass('active');
             $('.eaf-view-btn[data-view="' + state.view + '"]').addClass('active');
-            $('#eaf-hub-options').toggle(state.view === 'station');
+            $('#eaf-hub-options').toggle(state.view === 'station' || state.view === 'constellation');
         }
     }
 
@@ -1369,6 +1546,7 @@ jQuery(function ($) {
         // Booleans
         if (state.sl)  parts.push('sl=1');
         if (state.loc) parts.push('loc=1');
+        if (state.cmp) parts.push('cmp=1');
         if (state.std) {
             parts.push('std=1');
             // Encode loaded standings into the URL so shared links work for anyone,
@@ -1419,6 +1597,7 @@ jQuery(function ($) {
         // Booleans
         if (params.get('sl')  === '1') state.sl  = true;
         if (params.get('loc') === '1') state.loc = true;
+        if (params.get('cmp') === '1') state.cmp = true;
         if (params.get('std') === '1') state.std = true;
 
         // Standings data embedded by sharer — array of {from_id, standing}
@@ -1488,6 +1667,7 @@ jQuery(function ($) {
         $('#eaf-min-agents-scope .eaf-scope-pill[data-val="system"]').addClass('eaf-scope-pill-active');
         $('#eaf-storyline-only').prop('checked', false);
         $('#eaf-locator-only').prop('checked', false);
+        $('#eaf-compact-view').prop('checked', false);
         $('#eaf-standings-filter').prop('checked', false);
         $('#eaf-standings-status').text('');
         $('#eaf-sort-by').val('agents_desc');
