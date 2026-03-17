@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  EVE Agent Finder
  * Description:  Find optimal EVE Online mission hubs using EVE SDE data. Import agent, system, and faction data, then use the [eve_agent_finder] shortcode to filter for the perfect chain-running location.
- * Version:      1.2.6
+ * Version:      1.2.6.1
  * Author:       C4813
  * License:      GPL-2.0+
  * Text Domain:  eve-agent-finder
@@ -12,7 +12,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-define( 'EAF_VERSION',  '1.2.6' );
+define( 'EAF_VERSION',  '1.2.6.1' );
 define( 'EAF_DIR',      plugin_dir_path( __FILE__ ) );
 define( 'EAF_URL',      plugin_dir_url( __FILE__ ) );
 require_once EAF_DIR . 'includes/class-eaf-db.php';
