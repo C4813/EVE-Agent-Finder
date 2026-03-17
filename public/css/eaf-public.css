@@ -399,10 +399,31 @@
 
 /* Flat table */
 .eaf-table-wrap { overflow-x: auto; border-radius: 5px; border: 1px solid var(--border); }
-.eaf-table-flat th { cursor: pointer; }
+.eaf-table-flat { font-size: .88rem; }
+.eaf-table-flat th { cursor: pointer; font-size: .78rem; padding: .2rem .4rem; }
+.eaf-table-flat td { padding: .25rem .4rem; white-space: nowrap; }
 .eaf-table-flat th:hover { color: var(--accent); }
 .eaf-table-flat .sort-asc, .eaf-table-flat .sort-desc { color: var(--accent); }
-.eaf-cell-small { font-size: .93rem; color: var(--text-dim); max-width: 220px; }
+.eaf-cell-small { font-size: .88rem; color: var(--text-dim); }
+
+/* Truncating columns — ellipsis with full value in title tooltip */
+.eaf-td-agent, .eaf-td-corp, .eaf-td-faction, .eaf-td-station {
+    max-width: 0; /* forces table-layout:fixed to honour the width below */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.eaf-table-flat { table-layout: fixed; width: 100%; min-width: 700px; }
+.eaf-table-flat .col-agent    { width: 13%; }
+.eaf-table-flat .col-lvl      { width: 3.5%; }
+.eaf-table-flat .col-division { width: 7%; }
+.eaf-table-flat .col-type     { width: 7%; }
+.eaf-table-flat .col-corp     { width: 13%; }
+.eaf-table-flat .col-faction  { width: 11%; }
+.eaf-table-flat .col-station  { width: 22%; }
+.eaf-table-flat .col-system   { width: 7%; }
+.eaf-table-flat .col-sec      { width: 4%; }
+.eaf-table-flat .col-jumps    { width: 6.5%; }
 
 /* Agent type + locator pills */
 .eaf-type-pill {
