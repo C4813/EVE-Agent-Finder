@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.2.3
+Stable tag: 1.2.4
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,13 @@ Features include:
 7. Add `[eve_agent_finder]` to any page or post (recommended on a full-width page without a sidebar)
 
 == Changelog ==
+
+= 1.2.4 =
+* Lowsec and Nullsec are now selected by default alongside Highsec
+* Fixed security status display using EVE's ceiling convention for positive values (e.g. Hophib now correctly shows 0.1 Lowsec)
+* Table view: fixed layout with proportional column widths fits the available page width without horizontal overflow; long values truncate with ellipsis and show full text on hover
+* Table view: removed redundant Class column; tightened padding and font size
+* Version info modal: added GitHub repository link
 
 = 1.2.3 =
 * Removed non-functional GDPR hook code from previous releases (rollback to v1.2.0); added a GDPR Compliance section to the EVE SSO Settings admin page with exact cookie details (name, category, duration, description) to paste into any cookie consent plugin's manual cookie entry form
