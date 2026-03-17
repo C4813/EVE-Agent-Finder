@@ -643,19 +643,12 @@ jQuery(function ($) {
                 $('#eaf-standings-status').text('');
                 render();
             })
-            .catch(function(resp) {
+            .catch(function() {
                 standingsLoading = false;
                 $('#eaf-standings-filter').prop('checked', false);
-                const needReauth = resp && resp.responseJSON && resp.responseJSON.data && resp.responseJSON.data.need_reauth;
-                if (needReauth) {
-                    $('#eaf-standings-status').html(
-                        '<span class="eaf-standings-warn">Session expired. ' +
-                        '<a href="' + esc(EAF.sso_auth_url || '#') + '">Re-authenticate</a></span>'
-                    );
-                } else {
-                    const msg = (resp && resp.responseJSON && resp.responseJSON.data && resp.responseJSON.data.message) || 'Could not load standings.';
-                    $('#eaf-standings-status').html('<span class="eaf-standings-warn">' + esc(msg) + '</span>');
-                }
+                $('#eaf-standings-status').html(
+                    '<span class="eaf-standings-warn">Could not load standings — re-auth your character by clicking <strong>[Change Character]</strong> above.</span>'
+                );
             })
             .finally(function() {
                 standingsLoading = false;
