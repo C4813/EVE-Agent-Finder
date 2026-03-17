@@ -53,14 +53,22 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<button class="eaf-btn eaf-btn-sm eaf-btn-share" id="eaf-share-btn" title="Copy shareable link to clipboard">⎘ Share</button>
 			<button class="eaf-btn eaf-btn-sm eaf-btn-version" id="eaf-version-btn" title="Version history &amp; changelog">📋 Version info</button>
 			<div class="eaf-view-toggle">
-				<button class="eaf-view-btn active" data-view="station" title="Hub view — grouped by system">Hubs</button>
-				<button class="eaf-view-btn"        data-view="table"   title="Flat agent table">Table</button>
+				<button class="eaf-view-btn active" data-view="station"       title="Hub view — grouped by system">Hubs</button>
+				<button class="eaf-view-btn"        data-view="constellation" title="Constellation view — grouped by constellation">Constellations</button>
+				<button class="eaf-view-btn"        data-view="table"         title="Flat agent table">Table</button>
 			</div>
 		</div>
 	</div>
 
 	<!-- ── Info modal ───────────────────────────────────────────── -->
 	<?php require __DIR__ . '/info-modal.php'; ?>
+
+	<?php if ( $data_stale ) : ?>
+	<!-- ── Stale data notice ─────────────────────────────────────── -->
+	<div class="eaf-notice eaf-notice-warn eaf-stale-notice">
+		⚠ Agent data is <strong><?php echo esc_html( $data_age_days ); ?> days old</strong> — CCP releases SDE updates periodically. Consider re-importing in the <a href="<?php echo esc_url( admin_url( 'admin.php?page=eve-agent-finder' ) ); ?>">EVE Agent Finder admin panel</a>.
+	</div>
+	<?php endif; ?>
 
 	<!-- ── Changelog modal ──────────────────────────────────────── -->
 	<div class="eaf-modal" id="eaf-version-modal" style="display:none">
@@ -127,6 +135,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 						<!-- Locator toggle -->
 						<label class="eaf-check-pill">
 							<input type="checkbox" id="eaf-locator-only"> <span class="eaf-locator-tag">locator</span> agents only
+						</label>
+						<!-- Compact view toggle -->
+						<label class="eaf-check-pill">
+							<input type="checkbox" id="eaf-compact-view"> Compact view
 						</label>
 					</div>
 					<?php if ( EAF_SSO::is_configured() ) : ?>
