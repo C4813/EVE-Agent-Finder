@@ -92,6 +92,19 @@ class EAF_Public {
 		] );
 
 		ob_start();
+		$import_status = EAF_DB::get_import_status();
+		$oldest_import = null;
+		foreach ( $import_status as $row ) {
+			if ( $oldest_import === null || $row['imported_at'] < $oldest_import ) {
+				$oldest_import = $row['imported_at'];
+			}
+		}
+		$data_stale     = false;
+		$data_age_days  = 0;
+		if ( $oldest_import ) {
+			$data_age_days = (int) floor( ( time() - strtotime( $oldest_import ) ) / DAY_IN_SECONDS );
+			$data_stale    = $data_age_days > 90;
+		}
 		require EAF_DIR . 'public/templates/shortcode.php';
 		return ob_get_clean();
 	}
