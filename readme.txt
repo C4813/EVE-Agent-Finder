@@ -4,7 +4,7 @@ Tags: eve online, eve, missions, agents, tools
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 1.2.6.1
+Stable tag: 1.2.7
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,9 +45,10 @@ Features include:
 
 == Changelog ==
 
-= 1.2.6.1 =
-* Hotfix: corrected security status display to use floor (not ceil) to 1 decimal place, with a minimum of 0.1 for positive-security systems — e.g. Nonni now correctly shows 0.5, Hophib correctly shows 0.1
-* Hotfix: Lowsec and Nullsec filters now correctly active on initial page load — the shortcode default was still highsec only, causing the JS config to uncheck them immediately after the PHP template rendered them checked
+= 1.2.7 =
+* Bugfix: security class (highsec/lowsec/nullsec) is now assigned using the true security value rather than a rounded display value during SDE import — systems with a true security in the range 0.45–0.4999 were being stored as highsec (because round() returned 0.5) despite EVE displaying them as 0.4 (lowsec); this caused lowsec systems such as Uchoshi to appear in highsec-only or nullsec-only filtered results. Re-running the SDE import after updating is required to reclassify affected systems.
+* Bugfix: corrected security status display to use floor (not ceil) to 1 decimal place, with a minimum of 0.1 for positive-security systems — e.g. Nonni now correctly shows 0.5, Hophib correctly shows 0.1
+* Bugfix: Lowsec and Nullsec filters now correctly active on initial page load — the shortcode default was still highsec only, causing the JS config to uncheck them immediately after the PHP template rendered them checked
 
 = 1.2.6 =
 * Added Constellation view — a third view mode (alongside Hubs and Table) that groups systems by constellation; each constellation card shows name, region, system count, agent count, and L4 count, and expands to reveal the full hub cards for each system inside it
