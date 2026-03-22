@@ -238,10 +238,14 @@ class EAF_Importer {
 			if ( $rid >= 11000000 && $rid <= 11999999 ) {
 				$class = 'wormhole';
 			} else {
-				$sec_display = round( $sec, 1 );
-				if      ( $sec_display >= 0.5 ) { $class = 'highsec'; }
-				elseif  ( $sec_display >= 0.1 ) { $class = 'lowsec';  }
-				else                            { $class = 'nullsec'; }
+				// EVE displays security by flooring to 1 decimal place (not rounding).
+				// A true sec of 0.45 displays as 0.4 (lowsec), but round() would give 0.5
+				// (highsec) — causing lowsec systems to pass highsec-only filters.
+				// Compare directly against the true value; the game boundaries are
+				// exactly >= 0.5 for highsec and > 0.0 for lowsec.
+				if      ( $sec >= 0.5 ) { $class = 'highsec'; }
+				elseif  ( $sec >  0.0 ) { $class = 'lowsec';  }
+				else                    { $class = 'nullsec'; }
 			}
 			$rows[] = [ $rec['id'], sanitize_text_field( $name ), $sec, $rid, sanitize_text_field( $rname ), $cid, sanitize_text_field( $cname ), $class ];
 			if ( count( $rows ) >= 500 ) {
